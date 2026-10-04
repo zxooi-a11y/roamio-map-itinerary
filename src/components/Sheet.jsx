@@ -13,7 +13,15 @@ export function Sheet({ onClose, titleId, title, subtitle, footer, children, sty
     const dlg = ref.current;
     dlg.showModal();
     document.body.classList.add('modal-open');
+
+    // Keep the sheet within the visible area: on phones the on-screen keyboard shrinks the visual
+    // viewport without changing the layout viewport, so CSS units alone would let it be covered.
+    const vv = window.visualViewport;
+    const sync = () => dlg.style.setProperty('--vv-h', vv.height + 'px');
+    if (vv) { sync(); vv.addEventListener('resize', sync); }
+
     return () => {
+      vv?.removeEventListener('resize', sync);
       document.body.classList.remove('modal-open');
       if (dlg.open) dlg.close();
     };
