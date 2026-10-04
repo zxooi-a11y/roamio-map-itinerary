@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { categoryOf } from '../../lib/categories.js';
 import { fmtLong, plural } from '../../lib/dates.js';
+import { useCompact } from '../../hooks/useCompact.js';
 import { retryRoute, routeSummary } from '../../lib/routing.js';
 import { dayColor } from '../../lib/theme.js';
 import { TRAVEL_MODES } from '../../lib/trips.js';
@@ -12,9 +13,13 @@ import { StopRow } from './StopRow.jsx';
  * One day of the itinerary: a numbered rail, a summary header (always visible)
  * and a collapsible body with date, travel mode, route info and the stop list.
  *
+ * On phones (`compact`) the header is streamlined: a smaller day circle, no category icon before the title,
+ * no picture on the right, and the stop names on a single line.
+ *
  * `actions` holds the day-level callbacks from TripView, already bound to this trip.
  */
 export function DayCard({ day, index, isLast, route, center, drag, actions }) {
+  const compact = useCompact();
   const n = index + 1;
   const color = dayColor(index);
   const collapsed = Boolean(day.collapsed);
@@ -38,7 +43,7 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
   };
 
   return (
-    <section className={'day' + (collapsed ? ' collapsed' : '') + (isLast ? ' last' : '')} style={{ '--c': color }}
+    <section className={'day' + (compact ? ' compact' : '') + (collapsed ? ' collapsed' : '') + (isLast ? ' last' : '')} style={{ '--c': color }}
       aria-label={'Day ' + n} data-day-card={day.id}>
       <div className="rail">
         <span className="rail-label">Day</span>
@@ -50,14 +55,14 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
         <div className="day-head">
           <div className="day-main">
             <div className="day-top">
-              <span className="day-icon"><Icon name={day.stops[0] ? categoryOf(day.stops[0]) : 'Other'} /></span>
+              {!compact && <span className="day-icon"><Icon name={day.stops[0] ? categoryOf(day.stops[0]) : 'Other'} /></span>}
               <input className="day-title" value={day.title} placeholder="Name this day" aria-label={`Day ${n} title`}
                 onChange={(e) => actions.updateDay(day.id, { title: e.target.value })} />
               <button className="day-toggle" {...toggleProps}><Icon name="chevron" /></button>
             </div>
-            <StopPreview stops={day.stops} />
+            <StopPreview stops={day.stops} compact={compact} />
           </div>
-          <DayThumb day={day} dayNumber={n} center={center} onPhoto={(img) => actions.updateDay(day.id, { img })} />
+          {!compact && <DayThumb day={day} dayNumber={n} center={center} onPhoto={(img) => actions.updateDay(day.id, { img })} />}
         </div>
 
         <div className="day-body" id={'body-' + day.id}>
@@ -92,11 +97,22 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
   );
 }
 
-function StopPreview({ stops }) {
+function StopPreview({ stops, compact }) {
   if (!stops.length) return <div className="preview-empty">No stops yet</div>;
-  const names = stops.length > 4
-    ? [...stops.slice(0, 3).map((s) => s.name), `+${stops.length - 3} more`]
-    : stops.map((s) => s.name);
+  const n = stops.length;
+  const shown = n > 4 ? stops.slice(0, 3) : stops;
+  const more = n > 4 ? `+${n - 3} more` : '';
+
+  // Phones: one line. Names are separated by dots and cut off with "…" if they don't fit; "+N more" stays visible.
+  if (compact) {
+    return (
+      <div className="preview-line">
+        <span className="preview-names">{shown.map((s) => s.name).join(' · ')}</span>
+        {more && <span className="preview-more">{more}</span>}
+      </div>
+    );
+  }
+  const names = more ? [...shown.map((s) => s.name), more] : shown.map((s) => s.name);
   return <ul className="preview">{names.map((t, i) => <li key={i}>{t}</li>)}</ul>;
 }
 

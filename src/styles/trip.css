@@ -114,3 +114,17 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
   .day-head { padding: 14px; }
   .day-body { margin: 0 14px; }
 }
+
+/* ---------- Streamlined itinerary on phones (DayCard adds .compact; see hooks/useCompact.js) ---------- */
+.day.compact { grid-template-columns: 30px minmax(0, 1fr); gap: 8px; }
+.day.compact .rail { padding-top: 12px; }
+.day.compact .rail-label { font-size: .62rem; }
+.day.compact .rail-num { width: 26px; height: 26px; margin-top: 4px; font-size: .82rem; }
+.day.compact .rail-line { margin-top: 6px; }
+.day.compact .day-card { border-radius: 18px; }
+.day.compact .day-head { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
+.day.compact .day-title { font-size: 1.05rem; padding: 2px 0; }
+.day.compact .day-body { margin: 0 12px; padding-top: 10px; }
+.preview-line { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.preview-names { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.preview-more { flex: none; }
