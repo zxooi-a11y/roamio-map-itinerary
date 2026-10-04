@@ -2,7 +2,7 @@
 
 Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database, so the same trips are there on every device you open the site on. There is no sign-in.
 
-Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with the clean CARTO Positron basemap (OpenStreetMap data; change it in `src/lib/mapStyle.js`). Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
+Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with the clean Mapbox Light basemap when a Mapbox token is set (otherwise a similar free CARTO basemap). See the "Map style" section. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
 ## Import locations from a file
 
@@ -15,6 +15,15 @@ When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of 
 - Limits: 5 MB, 200 locations. Old `.xls` files aren't supported yet; save them as `.xlsx` or `.csv`.
 
 A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
+
+## Map style
+
+With a Mapbox public token the maps use Mapbox Light; without one they fall back to CARTO Positron, which looks similar. The token is not stored in the repo (GitHub blocks pushes that contain it). It's read at build time from `VITE_MAPBOX_TOKEN`:
+
+- **Live site:** add a repository secret named `VITE_MAPBOX_TOKEN` (Settings → Secrets and variables → Actions → New repository secret), then re-run the deploy workflow.
+- **Developing:** create `.env.local` containing `VITE_MAPBOX_TOKEN=pk....` (it's git-ignored).
+
+Restrict the token to the site's address in your Mapbox account (Tokens → URL restrictions). Style and fallback are configured in `src/lib/mapStyle.js`.
 
 ## Storage
 
