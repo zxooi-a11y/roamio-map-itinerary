@@ -1,8 +1,9 @@
-// Static map snapshots built from raw OpenStreetMap tiles (no Leaflet instance needed).
+import { snapshotTileUrl } from './mapStyle.js';
+
+// Static map snapshots built from raw map tiles (no Leaflet instance needed).
 // Used for trip covers, the hero background and day thumbnails.
 
 const TILE = 256;
-const TILE_URL = (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
 
 /** Web-Mercator pixel position of a coordinate at zoom z. */
 export function worldPx(lat, lng, z) {
@@ -43,7 +44,7 @@ export function snapshot({ lat, lng, z, w, h }) {
     if (ty < 0 || ty >= n) continue;
     for (let tx = Math.floor(left / TILE); tx <= Math.floor((left + w) / TILE); tx++) {
       const wrappedX = ((tx % n) + n) % n;
-      tiles.push({ key: `${z}/${tx}/${ty}`, src: TILE_URL(z, wrappedX, ty), left: tx * TILE - left, top: ty * TILE - top });
+      tiles.push({ key: `${z}/${tx}/${ty}`, src: snapshotTileUrl(z, wrappedX, ty), left: tx * TILE - left, top: ty * TILE - top });
     }
   }
   const project = (p) => {

@@ -2,7 +2,7 @@
 
 Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database, so the same trips are there on every device you open the site on. There is no sign-in.
 
-Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with OpenStreetMap tiles. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
+Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with the clean CARTO Positron basemap (OpenStreetMap data; change it in `src/lib/mapStyle.js`). Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
 ## Import locations from a file
 
@@ -51,7 +51,8 @@ src/
     routing.js             route providers, cache and subscription
     geocode.js             Nominatim search + result parsing
     photos.js              Wikipedia destination photo, image cropping
-    tiles.js               static OSM map snapshots (covers, thumbnails)
+    mapStyle.js            the basemap (one place for the interactive map and the snapshots)
+    tiles.js               static map snapshots (covers, thumbnails)
     cloud.js               Supabase: load / save / delete trips
     supabaseConfig.js      project URL + publishable key
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
