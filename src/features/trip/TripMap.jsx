@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { LEAFLET_TILE_OPTIONS, LEAFLET_TILE_URL } from '../../lib/mapStyle.js';
+import { useBasemap } from '../../hooks/useBasemap.js';
+import { basemapSelector } from '../../lib/mapStyle.js';
 import { dayColor } from '../../lib/theme.js';
 
 const WORLD_VIEW = [[20, 0], 2];
@@ -37,11 +38,11 @@ export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef
   const markersRef = useRef(new Map());
   const onMoveRef = useRef(onMoveStop);
   onMoveRef.current = onMoveStop;
+  const basemap = useBasemap();
 
   // Create the map once.
   useEffect(() => {
     const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: false }).setView(...WORLD_VIEW);
-    L.tileLayer(LEAFLET_TILE_URL, LEAFLET_TILE_OPTIONS).addTo(map);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
@@ -63,6 +64,15 @@ export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef
       mapRef.current = null;
     };
   }, [apiRef]);
+
+  // The map tiles. If they stop loading, the selector moves on to the next basemap and this layer is swapped.
+  useEffect(() => {
+    const layer = L.tileLayer(basemap.leafletUrl, basemap.leafletOptions)
+      .on('tileload', () => basemapSelector.note(true))
+      .on('tileerror', () => basemapSelector.note(false))
+      .addTo(mapRef.current);
+    return () => { layer.remove(); };
+  }, [basemap]);
 
   // Redraw markers and lines whenever the trip, the focus or a route changes.
   const routeSig = routes.map((r) => r?.status || '').join(',');

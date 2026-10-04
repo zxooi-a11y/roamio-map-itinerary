@@ -1,3 +1,5 @@
+import { useBasemap } from '../hooks/useBasemap.js';
+import { basemapSelector } from '../lib/mapStyle.js';
 import { boundsCenter, fitZoom, snapshot } from '../lib/tiles.js';
 import { Icon } from './Icon.jsx';
 
@@ -7,6 +9,7 @@ import { Icon } from './Icon.jsx';
  * Falls back to `center` when there are no points, or to a placeholder icon.
  */
 export function MapSnapshot({ points, center, w, h, maxZoom = 14, dots = true, pin = false, className = 'cover' }) {
+  useBasemap(); // tile URLs depend on the basemap in use
   let view = null;
   if (points.length) {
     view = { ...boundsCenter(points), z: fitZoom(points, w * 0.72, h * 0.62, maxZoom) };
@@ -27,6 +30,7 @@ export function MapSnapshot({ points, center, w, h, maxZoom = 14, dots = true, p
     <div className={className}>
       {tiles.map((t) => (
         <img key={t.key} src={t.src} alt="" draggable="false" loading="lazy"
+          onLoad={() => basemapSelector.note(true)} onError={() => basemapSelector.note(false)}
           style={{ left: t.left, top: t.top, width: 256, height: 256 }} />
       ))}
       {dots && points.map((p, i) => {
