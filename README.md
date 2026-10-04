@@ -1,6 +1,6 @@
 # Roamio: map itinerary planner
 
-Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database. Sign in once on each device (email + password) and the same trips are there everywhere.
+Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database, so the same trips are there on every device you open the site on. There is no sign-in.
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with OpenStreetMap tiles. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
@@ -16,11 +16,11 @@ When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of 
 
 A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
 
-## Accounts and storage
+## Storage
 
-Trips are stored in the Supabase project `roamio-map-itinerary` (table `public.trips`, one JSON document per trip). Row-level security means an account can only read and write its own rows, so the publishable key in `src/lib/supabaseConfig.js` is safe to publish. Never commit the project's secret / `service_role` key.
+Trips are stored in the Supabase project `roamio-map-itinerary` (table `public.trips`, one JSON document per trip). There are no accounts: the site uses the public key, so **anyone who has the site can read and change the trips**. That's fine for a personal planner. To make a change you'd need access to the table, e.g. by tightening the row-level-security policy. Never commit the project's secret / `service_role` key.
 
-First time: open the site, choose **Create an account**, and (if Supabase asks for it) confirm your email. After that, sign in once per device. The browser stays signed in. To stop strangers creating accounts, turn off *Allow new users to sign up* under Authentication → Sign In / Providers once your account exists.
+The table is defined by `supabase/trips.sql`.
 
 ## Run it
 
@@ -52,8 +52,8 @@ src/
     geocode.js             Nominatim search + result parsing
     photos.js              Wikipedia destination photo, image cropping
     tiles.js               static OSM map snapshots (covers, thumbnails)
-    cloud.js               Supabase: sign in / out, load / save / delete trips
-    supabaseConfig.js      project URL + publishable key (safe to publish; row-level security guards the data)
+    cloud.js               Supabase: load / save / delete trips
+    supabaseConfig.js      project URL + publishable key
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
                            xlsx), resolve.js (look up coordinates), buildTrip.js (places → trip)
     theme.js               per-day colours
