@@ -28,6 +28,7 @@ function popupContent(name) {
  * straight lines while they load), with days other than `focusDayId` dimmed.
  *
  * Leaflet manages its own DOM, so this component drives it imperatively from effects.
+ * Scrolling the mouse wheel over the map zooms it (pinch works on touch screens).
  * Parent gets an API through `apiRef`: flyTo(stop), getCenter(), getViewbox(), resize().
  * The view re-fits whenever `fitToken` changes.
  */
@@ -42,7 +43,7 @@ export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef
 
   // Create the map once.
   useEffect(() => {
-    const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: false }).setView(...WORLD_VIEW);
+    const map = L.map(elRef.current, { zoomControl: true, scrollWheelZoom: true }).setView(...WORLD_VIEW);
     layerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
 
