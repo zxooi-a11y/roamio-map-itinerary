@@ -18,10 +18,14 @@ export const TRAVEL_MODES = [
 
 export const newDay = (date = '') => ({ id: newId(), title: '', date, mode: 'foot', stops: [] });
 
-/** Build a new trip. With both dates it gets one day per date (capped), otherwise one undated day. */
-export function makeTrip({ title, place = '', center = null, start = '', end = '' }) {
+/**
+ * Build a new trip. With both dates it gets one day per date (capped), otherwise one undated day.
+ * `minDays` guarantees at least that many days (extra days continue the dates, or stay undated).
+ */
+export function makeTrip({ title, place = '', center = null, start = '', end = '', minDays = 1 }) {
   const dated = Boolean(start && end);
-  const count = dated ? Math.max(1, Math.min(MAX_TRIP_DAYS, daysBetween(start, end) + 1)) : 1;
+  const fromDates = dated ? daysBetween(start, end) + 1 : 1;
+  const count = Math.max(1, Math.min(MAX_TRIP_DAYS, Math.max(fromDates, minDays)));
   const now = Date.now();
   return {
     id: newId(), title, place, center, createdAt: now, updatedAt: now,

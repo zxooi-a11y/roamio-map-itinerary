@@ -4,6 +4,18 @@ Plan trips day by day on a map. You can search for places, put stops in order by
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with OpenStreetMap tiles. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
+## Import locations from a file
+
+When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of places.
+
+- **CSV / XLSX:** one place per row; the first row names the columns: `name`, `address`, `day` (1, 2, 3… or a date), `time`, `type`, `notes`, `lat`, `lng`. Only the name is required, and columns can be in any order. Only the first sheet of a workbook is read.
+- **Markdown:** bullet or numbered lists under headings such as `## Day 1` or `## 2026-07-02` (`- 09:00 Belém Tower – book ahead`), or pipe tables using the same column names.
+- Rows with `lat` and `lng` are used as they are. Others are looked up by name (biased to the trip's destination) at one per second, following Nominatim's usage policy. Places that can't be found are added at the destination with a note, so you can drag them into place.
+- If you don't enter trip dates, dates found in the file are used. Day numbers become days of the trip.
+- Limits: 5 MB, 200 locations. Old `.xls` files aren't supported yet; save them as `.xlsx` or `.csv`.
+
+A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
+
 ## Run it
 
 ```bash
@@ -35,6 +47,8 @@ src/
     photos.js              Wikipedia destination photo, image cropping
     tiles.js               static OSM map snapshots (covers, thumbnails)
     storage.js             localStorage load/save
+    import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
+                           xlsx), resolve.js (look up coordinates), buildTrip.js (places → trip)
     theme.js               per-day colours
 
   store/
