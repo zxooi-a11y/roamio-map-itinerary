@@ -63,7 +63,7 @@
 /* Day body */
 .day-body { margin: 0 16px; border-top: 1px dashed var(--line); padding-top: 14px; }
 .day-meta { padding: 0 0 8px; color: var(--muted); font-size: .85rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.date-input { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 8px; color-scheme: light; }
+.date-input { max-width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 8px; color-scheme: light; }
 .modes { display: inline-flex; gap: 4px; margin-left: auto; }
 .mode-btn { position: relative; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--muted);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }

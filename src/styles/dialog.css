@@ -21,7 +21,13 @@ dialog.sheet::backdrop { background: rgba(6,64,43,.4); }
 /* Search */
 .ad-search { position: relative; display: block; }
 .ad-search .ico { position: absolute; left: 13px; top: 50%; margin-top: -9px; width: 18px; height: 18px; color: var(--muted); }
-.ad-in { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 11px 12px; font-size: 16px; color-scheme: light; }
+.ad-in { width: 100%; min-width: 0; max-width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 11px 12px; font-size: 16px; color-scheme: light; }
+/* Date and time fields have a wide natural size (iOS Safari and Chrome); squeeze them to fit the column.
+   16px text is kept so iOS doesn't zoom the page when one is tapped. */
+.ad-in[type="date"], .ad-in[type="time"] { display: block; -webkit-appearance: none; appearance: none; min-height: 46px; overflow: hidden; text-align: left; }
+.ad-in[type="date"]::-webkit-date-and-time-value, .ad-in[type="time"]::-webkit-date-and-time-value { text-align: left; min-width: 0; }
+.ad-in[type="date"]::-webkit-calendar-picker-indicator, .ad-in[type="time"]::-webkit-calendar-picker-indicator { margin-inline-start: 4px; padding: 0; }
+@media (max-width: 420px) { .ad-in[type="date"], .ad-in[type="time"] { padding-left: 10px; padding-right: 8px; } }
 .ad-search .ad-in { padding-left: 40px; }
 .ad-in:focus { outline: 2px solid var(--c, var(--accent)); outline-offset: 0; border-color: transparent; }
 .ad-status { min-height: 1.3em; margin: 8px 2px 4px; color: var(--muted); font-size: .82rem; }
@@ -42,7 +48,9 @@ dialog.sheet::backdrop { background: rgba(6,64,43,.4); }
 .ad-picked { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px;
   border: 1px solid var(--c); background: color-mix(in srgb, var(--c) 6%, var(--card)); border-radius: 14px; }
 .ad-link { border: 0; background: transparent; color: var(--c); font-weight: 600; cursor: pointer; padding: 6px; border-radius: 8px; }
-.ad-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 14px; }
+.ad-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; margin-top: 14px; }
+.ad-fields > * { min-width: 0; } /* let each column shrink below its content's natural width */
+@media (max-width: 340px) { .ad-fields { grid-template-columns: minmax(0, 1fr); } } /* very narrow phones: one field per row */
 .ad-fields-flush { margin-top: 0; }
 .ad-fields .wide { grid-column: 1 / -1; }
 .ad-lbl { display: block; margin: 0 0 5px 2px; font-size: .78rem; font-weight: 600; color: var(--muted); }
