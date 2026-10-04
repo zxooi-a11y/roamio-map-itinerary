@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { SignInView } from './features/auth/SignInView.jsx';
 import { HomeView } from './features/home/HomeView.jsx';
 import { TripView } from './features/trip/TripView.jsx';
 import { useHashRoute } from './hooks/useHashRoute.js';
@@ -8,6 +9,7 @@ import { useTrips } from './store/TripsProvider.jsx';
 export function App() {
   const { status } = useTrips();
   if (status === 'loading') return <Splash message="Loading your trips…" />;
+  if (status === 'signed-out') return <SignInView />;
   if (status === 'error') return <LoadError />;
   return <Routes />;
 }
@@ -47,7 +49,6 @@ function Splash({ message, children }) {
 function LoadError() {
   const { loadError, reload } = useTrips();
   const messages = {
-    anon_disabled: 'Anonymous sign-ins are turned off in your Supabase project. Turn on "Allow anonymous sign-ins" under Authentication → Sign In / Providers, then try again.',
     network: "Couldn't reach the server. Check your connection and try again.",
   };
   return (

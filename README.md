@@ -1,6 +1,6 @@
 # Roamio: map itinerary planner
 
-Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database, so they are still there next time you open the site.
+Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database. Sign in once on each device (email + password) and the same trips are there everywhere.
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with OpenStreetMap tiles. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
@@ -15,6 +15,12 @@ When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of 
 - Limits: 5 MB, 200 locations. Old `.xls` files aren't supported yet; save them as `.xlsx` or `.csv`.
 
 A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
+
+## Accounts and storage
+
+Trips are stored in the Supabase project `roamio-map-itinerary` (table `public.trips`, one JSON document per trip). Row-level security means an account can only read and write its own rows, so the publishable key in `src/lib/supabaseConfig.js` is safe to publish. Never commit the project's secret / `service_role` key.
+
+First time: open the site, choose **Create an account**, and (if Supabase asks for it) confirm your email. After that, sign in once per device. The browser stays signed in. To stop strangers creating accounts, turn off *Allow new users to sign up* under Authentication → Sign In / Providers once your account exists.
 
 ## Run it
 
@@ -46,7 +52,7 @@ src/
     geocode.js             Nominatim search + result parsing
     photos.js              Wikipedia destination photo, image cropping
     tiles.js               static OSM map snapshots (covers, thumbnails)
-    cloud.js               Supabase: anonymous session, load / save / delete trips
+    cloud.js               Supabase: sign in / out, load / save / delete trips
     supabaseConfig.js      project URL + publishable key (safe to publish; row-level security guards the data)
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
                            xlsx), resolve.js (look up coordinates), buildTrip.js (places → trip)

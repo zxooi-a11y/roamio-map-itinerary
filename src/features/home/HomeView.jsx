@@ -10,7 +10,7 @@ import { Hero } from './Hero.jsx';
 import { PastTripRow, TripCard } from './TripCards.jsx';
 
 export function HomeView({ navigate }) {
-  const { trips, dispatch } = useTrips();
+  const { trips, dispatch, user, signOut } = useTrips();
   const today = useToday();
   const [creating, setCreating] = useState(false);
   const scroller = useRef(null);
@@ -65,6 +65,13 @@ export function HomeView({ navigate }) {
             : <div className="past-empty">Trips you have finished will show up here.</div>}
         </div>
       </section>
+
+      {user && (
+        <footer className="account">
+          Signed in as {user.email}
+          <button className="ad-link" type="button" onClick={signOut}>Sign out</button>
+        </footer>
+      )}
 
       {creating && <CreateTripDialog onClose={() => setCreating(false)} onCreate={createTrip} />}
     </div>

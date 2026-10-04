@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
-import { deleteTrips, ensureSession, fetchTrips, saveTrips } from '../lib/cloud.js';
+import * as cloud from '../lib/cloud.js';
 import { useToast } from '../components/Toast.jsx';
 import { diffTrips } from './diffTrips.js';
 import { tripsReducer } from './tripsReducer.js';
@@ -13,12 +13,15 @@ const RETRY_DELAY_MS = 5000;
  * Holds every trip. Trips are loaded from the cloud at start-up and every change is saved back in the
  * background (batched, and retried if the connection drops).
  *
- *   status  'loading' | 'ready' | 'error'    (error: the first load failed, see loadError; call reload())
+ *   status  'loading' | 'signed-out' | 'ready' | 'error'   (error: loading failed, see loadError; call reload())
+ *   user    the signed-in { id, email }, or null
  *   sync    'saved' | 'saving' | 'error'     whether recent edits have reached the cloud
+ *   signIn / signUp / signOut                account actions (each throws a CloudError the UI can show)
  */
 export function TripsProvider({ children }) {
   const [trips, dispatch] = useReducer(tripsReducer, []);
   const [status, setStatus] = useState('loading');
+  const [user, setUser] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [sync, setSync] = useState('saved');
   const toast = useToast();
@@ -31,23 +34,32 @@ export function TripsProvider({ children }) {
   const flushing = useRef(false);
   const warned = useRef(false);
 
+  const userRef = useRef(null);
+
   /* ---------- load ---------- */
   const reload = useCallback(async () => {
     setStatus('loading');
     setLoadError(null);
     try {
-      const loaded = await fetchTrips();
+      const u = await cloud.getUser();
+      userRef.current = u;
+      setUser(u);
+      const loaded = u ? await cloud.fetchTrips() : [];
       known.current = new Map(loaded.map((t) => [t.id, t]));
       pending.current = { upserts: new Set(), deletes: new Set() };
       dispatch({ type: 'trips/load', trips: loaded });
-      setStatus('ready');
+      setSync('saved');
+      setStatus(u ? 'ready' : 'signed-out');
     } catch (err) {
       setLoadError(err);
       setStatus('error');
     }
   }, []);
 
-  useEffect(() => { ensureSession().catch(() => {}); reload(); }, [reload]);
+  useEffect(() => { reload(); }, [reload]);
+
+  // Signed out in another tab: go back to the sign-in screen.
+  useEffect(() => cloud.onAuthChange((u) => { if (!u && userRef.current) reload(); }), [reload]);
 
   /* ---------- save ---------- */
   const flush = useCallback(async () => {
@@ -64,8 +76,8 @@ export function TripsProvider({ children }) {
 
     flushing.current = true;
     try {
-      await saveTrips(toSave);
-      await deleteTrips(takenDeletes);
+      await cloud.saveTrips(toSave);
+      await cloud.deleteTrips(takenDeletes);
       warned.current = false;
       if (!pending.current.upserts.size && !pending.current.deletes.size) setSync('saved');
       else timer.current = setTimeout(flush, SAVE_DELAY_MS);
@@ -122,8 +134,26 @@ export function TripsProvider({ children }) {
     return () => window.removeEventListener('beforeunload', warn);
   }, [sync]);
 
+  /* ---------- accounts ---------- */
+  const signIn = useCallback(async (email, password) => {
+    await cloud.signIn(email, password);
+    await reload();
+  }, [reload]);
+
+  const signUp = useCallback(async (email, password) => {
+    const result = await cloud.signUp(email, password);
+    if (!result.needsConfirmation) await reload();
+    return result;
+  }, [reload]);
+
+  const signOut = useCallback(async () => {
+    await flush(); // don't lose edits that are still waiting to be saved
+    await cloud.signOut();
+    await reload();
+  }, [flush, reload]);
+
   return (
-    <TripsContext.Provider value={{ trips, dispatch, status, loadError, reload, sync }}>
+    <TripsContext.Provider value={{ trips, dispatch, status, user, loadError, reload, sync, signIn, signUp, signOut }}>
       {children}
     </TripsContext.Provider>
   );
