@@ -19,6 +19,9 @@ function updateDay(trip, dayId, fn) {
 export function tripsReducer(trips, action) {
   const { type, tripId, dayId, stopId } = action;
   switch (type) {
+    case 'trips/load': // replace everything with what was loaded from the cloud
+      return action.trips;
+
     case 'trip/add':
       return [...trips, action.trip];
 

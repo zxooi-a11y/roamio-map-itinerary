@@ -1,6 +1,6 @@
 # Roamio: map itinerary planner
 
-Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Everything is saved in your browser (localStorage), so you don't need an account or a server.
+Plan trips day by day on a map. You can search for places, put stops in order by dragging them, see walking, cycling or driving routes, and count down to your next trip. Trips are saved to a Supabase database, so they are still there next time you open the site.
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with OpenStreetMap tiles. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
@@ -46,14 +46,16 @@ src/
     geocode.js             Nominatim search + result parsing
     photos.js              Wikipedia destination photo, image cropping
     tiles.js               static OSM map snapshots (covers, thumbnails)
-    storage.js             localStorage load/save
+    cloud.js               Supabase: anonymous session, load / save / delete trips
+    supabaseConfig.js      project URL + publishable key (safe to publish; row-level security guards the data)
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
                            xlsx), resolve.js (look up coordinates), buildTrip.js (places → trip)
     theme.js               per-day colours
 
   store/
     tripsReducer.js        every change to trip data, as named actions (unit-tested)
-    TripsProvider.jsx      React context + auto-save
+    diffTrips.js           what changed since the last save (unit-tested)
+    TripsProvider.jsx      React context: loads from the cloud, saves changes in the background
 
   hooks/                   useHashRoute, useRoute(s), usePlaceSearch, useCountdown, useToday
   components/              shared UI: Icon, MapSnapshot, Sheet (dialog), PlaceSearch, Toast
