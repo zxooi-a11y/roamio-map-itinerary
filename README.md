@@ -4,6 +4,16 @@ Plan trips day by day on a map. You can search for places, put stops in order by
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with the clean Mapbox Light basemap when a Mapbox token is set (otherwise a similar free CARTO basemap). See the "Map style" section. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
+## Changing a trip's dates
+
+The start and end date sit under the trip title on the itinerary page. Editing either one adds, removes or moves days to match:
+
+- Extending the start earlier or the end later adds empty days; existing days keep their calendar dates.
+- Shortening removes the days outside the new range. If any of them have stops, you're asked to confirm first.
+- Moving the start after the end (or the end before the start) moves the whole trip: same length, same days.
+- A trip with no dates yet takes them from whichever field you fill in, keeping its number of days.
+- Trips are limited to 60 days. The rules and their tests are in `src/lib/tripDates.js`.
+
 ## Import locations from a file
 
 When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of places.
@@ -56,6 +66,7 @@ src/
   lib/                     pure logic: no React, unit-tested
     trips.js               data model, trip phase/sorting/summary helpers, makeTrip, normalizeStore
     dates.js               "YYYY-MM-DD" helpers and formatting
+    tripDates.js           what changing the start / end date does to a trip's days (unit-tested)
     categories.js          stop categories + guessing from OSM data / names
     routing.js             route providers, cache and subscription
     geocode.js             Nominatim search + result parsing

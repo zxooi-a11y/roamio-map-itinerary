@@ -1,4 +1,5 @@
 import { addDays } from '../lib/dates.js';
+import { planDates } from '../lib/tripDates.js';
 import { newDay } from '../lib/trips.js';
 
 /*
@@ -33,6 +34,12 @@ export function tripsReducer(trips, action) {
 
     case 'trip/setPhoto': // cached hero photo; not a user edit
       return updateTrip(trips, tripId, (t) => ({ ...t, photo: action.photo || t.photo, photoTried: true }));
+
+    case 'trip/setDates': // { start, end, edited } adds / removes / moves days to fit (rules in lib/tripDates.js)
+      return updateTrip(trips, tripId, (t) => {
+        const plan = planDates(t, { start: action.start, end: action.end }, action.edited);
+        return plan && plan.changed ? touch({ ...t, days: plan.days }) : t;
+      });
 
     case 'day/add':
       return updateTrip(trips, tripId, (t) => {

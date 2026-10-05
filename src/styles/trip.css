@@ -128,3 +128,10 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 .preview-line { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; color: var(--muted); font-size: .85rem; white-space: nowrap; }
 .preview-names { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .preview-more { flex: none; }
+
+/* ---------- Editable trip dates (under the trip title) ---------- */
+.trip-dates { margin-top: 12px; }
+.td-row { display: flex; gap: 10px; }
+.td-field { flex: 1 1 0; min-width: 0; max-width: 210px; display: block; }
+.td-field .ad-lbl { margin-bottom: 4px; }
+.td-hint { margin: 8px 0 0; color: var(--muted); font-size: .8rem; max-width: 430px; }

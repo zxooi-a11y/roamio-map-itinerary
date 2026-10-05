@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
+import { useToast } from '../../components/Toast.jsx';
+import { useCompact } from '../../hooks/useCompact.js';
 import { useRoutes } from '../../hooks/useRoute.js';
 import { plural } from '../../lib/dates.js';
+import { describePlan, planDates } from '../../lib/tripDates.js';
 import { summaryLine } from '../../lib/trips.js';
 import { useTrips } from '../../store/TripsProvider.jsx';
 import { AddStopDialog } from './AddStopDialog.jsx';
 import { DayCard } from './DayCard.jsx';
 import { DayFilters } from './DayFilters.jsx';
+import { TripDates } from './TripDates.jsx';
 import { TripMap } from './TripMap.jsx';
 import { useStopDrag } from './useStopDrag.js';
 
 /** The planner for one trip: title, sticky map + day chips, and the list of days. */
 export function TripView({ trip }) {
   const { dispatch } = useTrips();
+  const toast = useToast();
+  const compact = useCompact();
   const tripId = trip.id;
   const [focusDayId, setFocusDayId] = useState(null);
   const [fitNonce, setFitNonce] = useState(0);
@@ -69,6 +75,18 @@ export function TripView({ trip }) {
       document.querySelector(`[data-day-card="${dayId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
+  // Start / end date edited: add, remove or move days to fit. Removing days that hold stops needs a yes.
+  const changeDates = (start, end, edited) => {
+    const plan = planDates(trip, { start, end }, edited);
+    if (!plan || !plan.changed) return;
+    if (plan.droppedStops > 0 &&
+        !confirm(`This removes ${plural(plan.droppedDays, 'day')} with ${plural(plan.droppedStops, 'stop')} in ${plan.droppedDays === 1 ? 'it' : 'them'}. Continue?`)) return;
+    dispatch({ type: 'trip/setDates', tripId, start, end, edited });
+    refit();
+    const message = describePlan(plan);
+    if (message) toast(message);
+  };
+
   const addStop = (stop) => {
     dispatch({ type: 'stop/add', tripId, dayId: adding.day.id, stop });
     setAdding(null);
@@ -81,7 +99,8 @@ export function TripView({ trip }) {
         <a className="back" href="#/"><Icon name="back" />All trips</a>
         <input className="title-input" aria-label="Trip name" value={trip.title}
           onChange={(e) => dispatch({ type: 'trip/update', tripId, patch: { title: e.target.value } })} />
-        <p className="subtitle">{summaryLine(trip)}</p>
+        <p className="subtitle">{summaryLine(trip, { withDates: false })}</p>
+        <TripDates trip={trip} onChange={changeDates} showHint={!compact} />
       </header>
 
       <div className="stickytop" ref={stickyRef}>

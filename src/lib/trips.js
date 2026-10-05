@@ -62,11 +62,11 @@ export function badgeText(trip, today = todayStr()) {
 export const metaText = (trip) => plural(trip.days.length, 'day') + ' · ' + plural(stopCount(trip), 'stop');
 
 /** "Lisbon, Portugal · 4 Mar – 9 Mar 2026 · 3 days · 12 stops" */
-export function summaryLine(trip, { withStops = true } = {}) {
+export function summaryLine(trip, { withStops = true, withDates = true } = {}) {
   const r = tripRange(trip);
   const bits = [];
   if (trip.place) bits.push(trip.place);
-  if (r) bits.push(fmtRange(r.start, r.end));
+  if (r && withDates) bits.push(fmtRange(r.start, r.end));
   bits.push(plural(trip.days.length, 'day'));
   if (withStops) bits.push(plural(stopCount(trip), 'stop'));
   return bits.join(' · ');
