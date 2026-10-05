@@ -13,8 +13,9 @@ import { StopRow } from './StopRow.jsx';
  * One day of the itinerary: a numbered rail, a summary header (always visible)
  * and a collapsible body with date, travel mode, route info and the stop list.
  *
- * On phones (`compact`) the header is streamlined: a smaller day circle, no category icon before the title,
- * no picture on the right, and the stop names on a single line.
+ * On phones (`compact`) the layout is streamlined: no left-hand rail with its dotted line (the cards use the
+ * full width and the day number sits inside the card), no category icon before the title, no picture on the
+ * right, and the stop names on a single line.
  *
  * `actions` holds the day-level callbacks from TripView, already bound to this trip.
  */
@@ -45,16 +46,19 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
   return (
     <section className={'day' + (compact ? ' compact' : '') + (collapsed ? ' collapsed' : '') + (isLast ? ' last' : '')} style={{ '--c': color }}
       aria-label={'Day ' + n} data-day-card={day.id}>
-      <div className="rail">
-        <span className="rail-label">Day</span>
-        <button className="rail-num" {...toggleProps}>{n}</button>
-        <div className="rail-line" />
-      </div>
+      {!compact && (
+        <div className="rail">
+          <span className="rail-label">Day</span>
+          <button className="rail-num" {...toggleProps}>{n}</button>
+          <div className="rail-line" />
+        </div>
+      )}
 
       <div className="day-card" onClick={onCardClick}>
         <div className="day-head">
           <div className="day-main">
             <div className="day-top">
+              {compact && <span className="day-num" aria-hidden="true">{n}</span>}
               {!compact && <span className="day-icon"><Icon name={day.stops[0] ? categoryOf(day.stops[0]) : 'Other'} /></span>}
               <input className="day-title" value={day.title} placeholder="Name this day" aria-label={`Day ${n} title`}
                 onChange={(e) => actions.updateDay(day.id, { title: e.target.value })} />

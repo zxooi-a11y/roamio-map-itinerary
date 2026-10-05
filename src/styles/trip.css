@@ -109,18 +109,15 @@ ol.stops.is-empty::before { content: "No stops yet. Add a place below, or drag o
 body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 
 @media (max-width: 480px) {
-  .stop { grid-template-columns: 14px 48px 1fr auto; gap: 4px; }
-  .day { grid-template-columns: 44px 1fr; gap: 8px; }
   .day-head { padding: 14px; }
   .day-body { margin: 0 14px; }
 }
 
 /* ---------- Streamlined itinerary on phones (DayCard adds .compact; see hooks/useCompact.js) ---------- */
-.day.compact { grid-template-columns: 30px minmax(0, 1fr); gap: 8px; }
-.day.compact .rail { padding-top: 12px; }
-.day.compact .rail-label { font-size: .62rem; }
-.day.compact .rail-num { width: 26px; height: 26px; margin-top: 4px; font-size: .82rem; }
-.day.compact .rail-line { margin-top: 6px; }
+.day.compact { grid-template-columns: minmax(0, 1fr); } /* no rail column: the card uses the full width */
+.day.compact .day-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--c); color: #fff; display: grid; place-items: center; font: 700 .8rem var(--body); }
+.day.compact .stop { grid-template-columns: 14px minmax(0, 1fr) auto; gap: 6px; } /* grip | the whole line | remove */
+.day.compact .stop-time { font-size: .85rem; padding-top: 0; }
 .day.compact .day-card { border-radius: 18px; }
 .day.compact .day-head { grid-template-columns: minmax(0, 1fr); padding: 10px 12px; }
 .day.compact .day-title { font-size: 1.05rem; padding: 2px 0; }
