@@ -10,13 +10,15 @@ const MIN_CHARS = 3;
  *
  * status: 'idle' | 'short' | 'searching' | 'done' | 'error'
  */
-export function usePlaceSearch({ limit = 6, getViewbox } = {}) {
+export function usePlaceSearch({ limit = 6, getViewbox, countryCodes } = {}) {
   const [query, setQuery] = useState('');
   const [state, setState] = useState({ status: 'idle', results: [], q: '' });
   const ctlRef = useRef(null);
   const timerRef = useRef(0);
   const viewboxRef = useRef(getViewbox);
   viewboxRef.current = getViewbox;
+  const countryRef = useRef(countryCodes); // optional: only search in these countries, e.g. "jp"
+  countryRef.current = countryCodes;
 
   const cancel = useCallback(() => {
     clearTimeout(timerRef.current);
@@ -30,7 +32,7 @@ export function usePlaceSearch({ limit = 6, getViewbox } = {}) {
     ctlRef.current = ctl;
     setState({ status: 'searching', results: [], q });
     try {
-      const results = await searchPlaces(q, { limit, viewbox: viewboxRef.current?.(), signal: ctl.signal });
+      const results = await searchPlaces(q, { limit, viewbox: viewboxRef.current?.(), countryCodes: countryRef.current || undefined, signal: ctl.signal });
       if (!ctl.signal.aborted) setState({ status: 'done', results, q });
     } catch {
       if (!ctl.signal.aborted) setState({ status: 'error', results: [], q });

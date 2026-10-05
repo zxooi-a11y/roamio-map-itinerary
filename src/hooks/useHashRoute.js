@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Minimal hash router: "#/" is home, "#/trip/<id>" is a trip.
- * Hash routing needs no server config, so it works on GitHub Pages.
+ * Minimal hash router. Hash routing needs no server config, so it works on GitHub Pages.
+ *   "#/"                     home
+ *   "#/trip/<id>"            a trip
+ *   "#/inspiration"          saved places, all countries
+ *   "#/inspiration/<key>"    saved places in one country (key: ISO code like "jp", or a typed country name)
  */
 export function parseHash(hash) {
+  const insp = (hash || '').match(/^#\/inspiration(?:\/(.+))?$/);
+  if (insp) {
+    try { return { view: 'inspiration', country: insp[1] ? decodeURIComponent(insp[1]) : '' }; }
+    catch { return { view: 'inspiration', country: '' }; }
+  }
   const m = (hash || '').match(/^#\/trip\/(.+)$/);
   if (!m) return { view: 'home' };
   try {
@@ -15,6 +23,7 @@ export function parseHash(hash) {
 }
 
 export const tripHref = (tripId) => '#/trip/' + encodeURIComponent(tripId);
+export const inspirationHref = (countryKey = '') => '#/inspiration' + (countryKey ? '/' + encodeURIComponent(countryKey) : '');
 
 export function useHashRoute() {
   const [route, setRoute] = useState(() => parseHash(location.hash));

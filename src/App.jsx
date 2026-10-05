@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
 import { HomeView } from './features/home/HomeView.jsx';
+import { InspirationView } from './features/inspiration/InspirationView.jsx';
 import { TripView } from './features/trip/TripView.jsx';
 import { useHashRoute } from './hooks/useHashRoute.js';
+import { useInspiration } from './store/InspirationProvider.jsx';
 import { useTrips } from './store/TripsProvider.jsx';
 
-/** Picks the view from the URL hash: "#/" → home, "#/trip/<id>" → that trip's planner. */
+/** Picks the view from the URL hash: home, a trip's planner, or the Inspiration page (see useHashRoute). */
 export function App() {
   const { status } = useTrips();
   if (status === 'loading') return <Splash message="Loading your trips…" />;
@@ -14,7 +16,10 @@ export function App() {
 
 function Routes() {
   const [route, navigate] = useHashRoute();
-  const { trips, sync } = useTrips();
+  const { trips, sync: tripsSync } = useTrips();
+  const { sync: placesSync } = useInspiration();
+  // One badge for everything that saves in the background
+  const sync = tripsSync === 'error' || placesSync === 'error' ? 'error' : tripsSync === 'saving' || placesSync === 'saving' ? 'saving' : 'saved';
   const trip = route.view === 'trip' ? trips.find((t) => t.id === route.tripId) : null;
   const deadLink = route.view === 'trip' && !trip;
 
@@ -25,7 +30,9 @@ function Routes() {
 
   return (
     <>
-      {trip ? <TripView key={trip.id} trip={trip} /> : <HomeView navigate={navigate} />}
+      {trip ? <TripView key={trip.id} trip={trip} />
+        : route.view === 'inspiration' ? <InspirationView country={route.country} navigate={navigate} />
+        : <HomeView navigate={navigate} />}
       {sync !== 'saved' && (
         <div className={'sync-badge' + (sync === 'error' ? ' is-error' : '')} role="status">
           {sync === 'error' ? 'Not saved yet. Retrying…' : 'Saving…'}

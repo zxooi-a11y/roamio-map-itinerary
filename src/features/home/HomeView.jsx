@@ -6,6 +6,7 @@ import { plural } from '../../lib/dates.js';
 import { sortTrips, tripPhase, tripTitle } from '../../lib/trips.js';
 import { useTrips } from '../../store/TripsProvider.jsx';
 import { CreateTripDialog } from './CreateTripDialog.jsx';
+import { InspirationTeaser } from '../inspiration/InspirationTeaser.jsx';
 import { Hero } from './Hero.jsx';
 import { PastTripRow, TripCard } from './TripCards.jsx';
 
@@ -53,6 +54,8 @@ export function HomeView({ navigate }) {
           {sorted.map((t) => <TripCard key={t.id} trip={t} today={today} onDelete={deleteTrip} />)}
         </div>
       </section>
+
+      <InspirationTeaser />
 
       <section className="home-sec" aria-labelledby="h-past">
         <div className="sec-head">

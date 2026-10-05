@@ -4,6 +4,16 @@ Plan trips day by day on a map. You can search for places, put stops in order by
 
 Built with React and Vite. Maps use [Leaflet](https://leafletjs.com) with the clean Mapbox Light basemap when a Mapbox token is set (otherwise a similar free CARTO basemap). See the "Map style" section. Place search uses Nominatim, routes use OSRM or Valhalla, and destination photos come from Wikipedia.
 
+## Inspiration: places saved for future travels
+
+The **Inspiration** page (home page → Inspiration, or `#/inspiration`) keeps places you've found on Instagram, grouped by country, so before a trip you open that country and everything you've saved is there.
+
+- **Save a place:** paste the post or reel link (share tracking like `?igsh=` is removed), search the place's name (this fills in the city, country and map location), add a note if you like. *Save & next* keeps the dialog open for the next place. A place that can't be found can be saved by name only.
+- **Countries** are grouped by ISO code from the place search, so they stay together however the name is spelled; a typed country matching one you already use joins that group.
+- On a country's page, searching for a new place is limited to that country (with a *Search everywhere* option).
+- Each card links to the Instagram post and to Google Maps, and can be edited or deleted.
+- Stored in the `inspirations` table in Supabase. **One-time setup:** run `supabase/inspirations.sql` in the Supabase SQL Editor. Until then the page explains this and the rest of the app works as normal.
+
 ## Changing a trip's dates
 
 The start and end date sit under the trip title on the itinerary page. Editing either one adds, removes or moves days to match:
@@ -39,7 +49,7 @@ Restrict the token to the site's address in your Mapbox account (Tokens → URL 
 
 Trips are stored in the Supabase project `roamio-map-itinerary` (table `public.trips`, one JSON document per trip). There are no accounts: the site uses the public key, so **anyone who has the site can read and change the trips**. That's fine for a personal planner. To make a change you'd need access to the table, e.g. by tightening the row-level-security policy. Never commit the project's secret / `service_role` key.
 
-The table is defined by `supabase/trips.sql`.
+The tables are defined by `supabase/trips.sql` and `supabase/inspirations.sql`.
 
 ## Run it
 
@@ -73,7 +83,8 @@ src/
     photos.js              Wikipedia destination photo, image cropping
     mapStyle.js            the basemap (one place for the interactive map and the snapshots)
     tiles.js               static map snapshots (covers, thumbnails)
-    cloud.js               Supabase: load / save / delete trips
+    cloud.js               Supabase: load / save / delete rows of any table (trips, inspirations)
+    inspiration.js         saved places: link clean-up, grouping by country, search, map links (unit-tested)
     supabaseConfig.js      project URL + publishable key
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,
                            xlsx), resolve.js (look up coordinates), buildTrip.js (places → trip)
@@ -82,12 +93,15 @@ src/
   store/
     tripsReducer.js        every change to trip data, as named actions (unit-tested)
     diffTrips.js           what changed since the last save (unit-tested)
-    TripsProvider.jsx      React context: loads from the cloud, saves changes in the background
+    useSyncedCollection.js loads a table, saves changes in the background (batched, retried when offline)
+    TripsProvider.jsx      trips, built on useSyncedCollection
+    InspirationProvider.jsx saved places, built on useSyncedCollection; inspirationReducer.js has its actions
 
   hooks/                   useHashRoute, useRoute(s), usePlaceSearch, useCountdown, useToday
   components/              shared UI: Icon, MapSnapshot, Sheet (dialog), PlaceSearch, Toast
 
   features/home/           HomeView, Hero (countdown), TripCards, CreateTripDialog
+  features/inspiration/    InspirationView (page), PlaceDialog (save / edit), InspirationTeaser (home section)
   features/trip/           TripView, TripMap (Leaflet), DayCard, StopRow, DayThumb,
                            DayFilters, AddStopDialog, useStopDrag (drag-and-drop)
 
