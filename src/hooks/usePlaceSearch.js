@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { searchPlaces } from '../lib/geocode.js';
+import { searchAllPlaces } from '../lib/geocode.js';
 
 const DEBOUNCE_MS = 550;
 const MIN_CHARS = 3;
@@ -32,7 +32,7 @@ export function usePlaceSearch({ limit = 6, getViewbox, countryCodes } = {}) {
     ctlRef.current = ctl;
     setState({ status: 'searching', results: [], q });
     try {
-      const results = await searchPlaces(q, { limit, viewbox: viewboxRef.current?.(), countryCodes: countryRef.current || undefined, signal: ctl.signal });
+      const results = await searchAllPlaces(q, { limit, viewbox: viewboxRef.current?.(), countryCodes: countryRef.current || undefined, signal: ctl.signal });
       if (!ctl.signal.aborted) setState({ status: 'done', results, q });
     } catch {
       if (!ctl.signal.aborted) setState({ status: 'error', results: [], q });

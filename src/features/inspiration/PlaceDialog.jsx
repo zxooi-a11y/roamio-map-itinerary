@@ -4,6 +4,7 @@ import { PlaceSearch } from '../../components/PlaceSearch.jsx';
 import { Sheet } from '../../components/Sheet.jsx';
 import { usePlaceSearch } from '../../hooks/usePlaceSearch.js';
 import { guessCategory } from '../../lib/categories.js';
+import { parseGoogleMapsUrl } from '../../lib/geocode.js';
 import { countryName, flagEmoji, FOLDER_NAME_MAX, makeFolder, parseLink } from '../../lib/inspiration.js';
 
 const NEW = '__new__';
@@ -42,6 +43,7 @@ export function PlaceDialog({ place, initialLink = '', countryHint, folders = []
   }, [onlyHere]);
 
   const link = parseLink(form.link);
+  const shortMapsLink = Boolean(parseGoogleMapsUrl(search.q)?.short);
   const linkBad = form.link.trim() !== '' && !link;
 
   const pick = (r) => {
@@ -117,14 +119,15 @@ export function PlaceDialog({ place, initialLink = '', countryHint, folders = []
           ) : (
             <>
               <PlaceSearch id="pl-q" placeholder="Search the place, e.g. the café or viewpoint" search={search}
-                hint={onlyHere ? `Searching in ${flagEmoji(countryHint.code)} ${countryHint.name}.` : 'Type the name of the place from the post.'}
+                hint={onlyHere ? `Searching in ${flagEmoji(countryHint.code)} ${countryHint.name}.` : 'Type the place\'s name, or paste its Google Maps link.'}
                 iconFor={(r) => r.cat} onPick={pick} />
               {onlyHere && (
                 <button className="ad-link pl-everywhere" type="button" onClick={() => setOnlyHere(false)}>
                   Search everywhere instead
                 </button>
               )}
-              {search.q && ['done', 'error'].includes(search.status) && (
+              {shortMapsLink && <p className="pl-later">That's a short Google Maps link, which can't be read here. Open it, then copy the full address from the browser's address bar.</p>}
+              {search.q && !shortMapsLink && ['done', 'error'].includes(search.status) && (
                 <button className="ad-fallback" type="button" onClick={useTyped}>
                   Save “{search.q}” without a map location
                 </button>
