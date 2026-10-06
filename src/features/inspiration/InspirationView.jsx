@@ -97,7 +97,7 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
     navigate?.(inspirationHref());
   };
 
-  const title = folder ? `${folderFlag(folder.id, places) || '📁'} ${folder.name}` : folderId === UNFILED ? 'Not in a folder'
+  const title = folder ? `${folderFlag(folder.id, places, folder.name) || '📁'} ${folder.name}` : folderId === UNFILED ? 'Not in a folder'
     : current ? `${current.flag ? current.flag + ' ' : ''}${current.name}` : 'Inspiration';
   const countLine = inFolderView
     ? plural(pagePlaces.length, 'saved place') + (groups.length > 1 ? ` · ${countriesText(groups.length)}` : '')

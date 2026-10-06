@@ -118,12 +118,32 @@ export function embedUrl(link) {
   return '';
 }
 
-/** The flag of the country most of a folder's places are in ('' if none has one). */
-export function folderFlag(folderId, places) {
+const NAME_ALIASES = { uk: 'gb', 'u.k.': 'gb', 'great britain': 'gb', britain: 'gb', england: 'gb', scotland: 'gb', wales: 'gb', usa: 'us', 'u.s.': 'us', 'u.s.a.': 'us', america: 'us', uae: 'ae', korea: 'kr', 'south korea': 'kr', holland: 'nl' };
+let codesByName = null;
+/** The ISO code for a country written as a name ("Malaysia", "UK", "United States"), or ''. */
+export function codeForName(name) {
+  const key = String(name || '').trim().toLowerCase();
+  if (!key) return '';
+  if (NAME_ALIASES[key]) return NAME_ALIASES[key];
+  if (!codesByName) {
+    codesByName = new Map();
+    try {
+      const names = new Intl.DisplayNames(['en'], { type: 'region' });
+      for (let i = 65; i <= 90; i++) for (let j = 65; j <= 90; j++) {
+        const code = String.fromCharCode(i, j), n = names.of(code);
+        if (n && n !== code && !codesByName.has(n.toLowerCase())) codesByName.set(n.toLowerCase(), code.toLowerCase());
+      }
+    } catch { /* old browser */ }
+  }
+  return codesByName.get(key) || '';
+}
+
+/** The flag of the country most of a folder's places are in; failing that, the one its name spells ("Malaysia"); '' if none. */
+export function folderFlag(folderId, places, folderName = '') {
   const counts = new Map();
   for (const p of places) if (p.folderId === folderId && p.countryCode) counts.set(p.countryCode, (counts.get(p.countryCode) || 0) + 1);
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  return top ? flagEmoji(top[0]) : '';
+  return flagEmoji(top ? top[0] : codeForName(folderName));
 }
 
 /* ---------- Creating / repairing ---------- */

@@ -7,16 +7,16 @@ import { folderFlag } from '../../lib/inspiration.js';
 import { fetchFolderCover } from '../../lib/photos.js';
 
 /** One cover for a folder: a photo of one of its places if any source has one, else a map of where they are, else an icon. */
-function FolderCover({ items }) {
+function FolderCover({ items, name }) {
   const [photo, setPhoto] = useState('');
   const key = items.map((p) => p.id).join();
   useEffect(() => {
     let live = true;
     setPhoto('');
-    if (items.length) fetchFolderCover(items).then((src) => { if (live) setPhoto(src); });
+    if (items.length) fetchFolderCover(items, name).then((src) => { if (live) setPhoto(src); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  }, [key, name]);
 
   if (photo) return <img className="ft-img" src={photo} alt="" loading="lazy" draggable="false" onError={() => setPhoto('')} />;
   const points = items.filter((p) => p.lat !== null && p.lat !== undefined && p.lng !== null && p.lng !== undefined);
@@ -40,9 +40,9 @@ export function FolderTiles({ folders, places, unfiled }) {
         {tiles.map((t) => (
           <li key={t.id}>
             <a className={'ft-tile' + (t.plain ? ' is-plain' : '')} href={folderHref(t.id)}>
-              <span className="ft-cover"><FolderCover items={t.items} /></span>
+              <span className="ft-cover"><FolderCover items={t.items} name={t.plain ? '' : t.name} /></span>
               <span className="ft-label">
-                <span className="ft-name">{t.plain ? '' : folderFlag(t.id, places) + ' '}{t.name}</span>
+                <span className="ft-name">{t.plain ? '' : folderFlag(t.id, places, t.name) + ' '}{t.name}</span>
                 <span className="ft-count">{t.items.length ? plural(t.items.length, 'place') : 'Empty'}</span>
               </span>
             </a>

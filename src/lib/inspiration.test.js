@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { embedUrl, folderFlag, countryKey, flagEmoji, groupByCountry, makePlace, mapsUrl, normalizePlace, normalizePlaces, parseLink, searchPlacesList } from './inspiration.js';
+import { codeForName, embedUrl, folderFlag, countryKey, flagEmoji, groupByCountry, makePlace, mapsUrl, normalizePlace, normalizePlaces, parseLink, searchPlacesList } from './inspiration.js';
 import { parseResult } from './geocode.js';
 
 test('Instagram links are cleaned of share tracking and labelled', () => {
@@ -142,4 +142,12 @@ test('a folder takes the flag of its most common country', () => {
   const ps = [{ folderId: 'f', countryCode: 'gb' }, { folderId: 'f', countryCode: 'gb' }, { folderId: 'f', countryCode: 'fr' }, { folderId: 'g', countryCode: 'jp' }];
   assert.equal(folderFlag('f', ps), '🇬🇧');
   assert.equal(folderFlag('none', ps), '');
+});
+
+test('a folder named after a country gets its flag even when its places have no country', () => {
+  assert.equal(folderFlag('m', [{ folderId: 'm', countryCode: '' }], 'Malaysia'), '🇲🇾');
+  assert.equal(folderFlag('m', [], 'UK'), '🇬🇧');
+  assert.equal(folderFlag('m', [], 'United States'), '🇺🇸');
+  assert.equal(folderFlag('m', [], 'Food'), '');
+  assert.equal(codeForName('  france '), 'fr');
 });

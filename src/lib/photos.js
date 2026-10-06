@@ -92,10 +92,11 @@ const mostCommon = (values) => {
  *   1. the Wikipedia article for each sight (its own landmark photo)
  *   2. the nearest landmark's article, for each sight
  *   3. the article for the folder's main city, then its country (a skyline or famous view)
- *   4. a saved TikTok's thumbnail
+ *   4. the folder's own name, as a place ("Tourism in Malaysia"), for places with no city or country
+ *   5. a saved TikTok's thumbnail
  * '' when nothing is found (the caller shows a map).
  */
-export async function fetchFolderCover(places) {
+export async function fetchFolderCover(places, folderName = '') {
   const ordered = places.slice(0, 12);
   const sights = ordered.filter((p) => SIGHTS.includes(p.cat));
   const photo = await firstOf([
@@ -103,6 +104,9 @@ export async function fetchFolderCover(places) {
     ...sights.map((p) => () => landmarkNear(p.lat, p.lng)),
     () => { const city = mostCommon(places.map((p) => p.city)); return city ? wikipediaPhotoFor({ name: city, country: mostCommon(places.map((p) => p.country)) }) : ''; },
     () => { const country = mostCommon(places.map((p) => p.country)); return country ? wikipediaPhotoFor({ name: country }) : ''; },
+    // places saved by name only have no city or country: use what the folder is called ("Malaysia")
+    () => (folderName ? wikipediaPhotoFor({ name: 'Tourism in ' + folderName }) : ''),
+    () => (folderName ? wikipediaPhotoFor({ name: folderName }) : ''),
     ...ordered.map((p) => () => tiktokThumbnail(p.link)),
   ]);
   return photo;
