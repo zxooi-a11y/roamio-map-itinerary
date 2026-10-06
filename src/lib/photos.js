@@ -47,49 +47,63 @@ const getJson = async (url) => {
 };
 const query = (o) => new URLSearchParams({ format: 'json', origin: '*', ...o });
 
-/** 1. A Wikimedia Commons photo taken within ~250 m of the place. */
-export function commonsPhotoNear(lat, lng) {
-  if (lat === null || lat === undefined || lng === null || lng === undefined) return Promise.resolve('');
-  return once(`c:${lat.toFixed(4)},${lng.toFixed(4)}`, async () => {
-    const j = await getJson('https://commons.wikimedia.org/w/api.php?' + query({
-      action: 'query', generator: 'geosearch', ggscoord: `${lat}|${lng}`, ggsradius: '250', ggslimit: '10', ggsnamespace: '6',
-      prop: 'imageinfo', iiprop: 'url|mime', iiurlwidth: '600',
-    }));
-    const photo = Object.values(j.query?.pages || {})
-      .map((p) => p.imageinfo?.[0]).filter((i) => i && i.mime === 'image/jpeg' && i.thumburl)[0];
-    return photo?.thumburl || '';
-  });
-}
+const raster = (src) => src && !/\.svg/i.test(src);
+const pageImage = (j) => Object.values(j.query?.pages || {}).filter((p) => raster(p.thumbnail?.source)).sort((a, b) => a.index - b.index)[0]?.thumbnail.source || '';
 
-/** 2. The lead image of the Wikipedia article that best matches the place's name and city. */
+/** A. The lead image of the Wikipedia article that best matches a name (and its city / country): the place's own landmark photo. */
 export function wikipediaPhotoFor(place) {
   const term = [place.name, place.city || place.country].filter(Boolean).join(' ').trim();
   if (!term) return Promise.resolve('');
-  return once('w:' + term, async () => {
-    const j = await getJson('https://en.wikipedia.org/w/api.php?' + query({
-      action: 'query', generator: 'search', gsrlimit: '3', gsrsearch: term,
-      prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '600', pilicense: 'any',
-    }));
-    return Object.values(j.query?.pages || {}).filter((p) => p.thumbnail?.source).sort((a, b) => a.index - b.index)[0]?.thumbnail.source || '';
-  });
+  return once('w:' + term, async () => pageImage(await getJson('https://en.wikipedia.org/w/api.php?' + query({
+    action: 'query', generator: 'search', gsrlimit: '3', gsrsearch: term,
+    prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '600', pilicense: 'any',
+  }))));
 }
 
-/** 3. The thumbnail of a saved TikTok video (TikTok's public oEmbed). */
+/** B. The lead image of the nearest Wikipedia article about something within ~600 m (a landmark close by). */
+export function landmarkNear(lat, lng) {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) return Promise.resolve('');
+  return once(`n:${lat.toFixed(3)},${lng.toFixed(3)}`, async () => pageImage(await getJson('https://en.wikipedia.org/w/api.php?' + query({
+    action: 'query', generator: 'geosearch', ggscoord: `${lat}|${lng}`, ggsradius: '600', ggslimit: '10',
+    prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '600', pilicense: 'any',
+  }))));
+}
+
+/** D. The thumbnail of a saved TikTok video (TikTok's public oEmbed). */
 export function tiktokThumbnail(link) {
   if (!link || !/tiktok\.com/i.test(link)) return Promise.resolve('');
   return once('t:' + link, async () => (await getJson('https://www.tiktok.com/oembed?url=' + encodeURIComponent(link))).thumbnail_url || '');
 }
 
+const SIGHTS = ['Landmark', 'Museum', 'Park'];
+const firstOf = async (steps) => {
+  for (const step of steps) { const src = await step(); if (src) return src; }
+  return '';
+};
+const mostCommon = (values) => {
+  const n = new Map();
+  for (const v of values.filter(Boolean)) n.set(v, (n.get(v) || 0) + 1);
+  return [...n.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+};
+
 /**
- * One picture for a folder: goes through its places in order and, for each, tries the sources above;
- * the first photo found is the cover. '' when nothing is found (the caller shows a map instead).
+ * One picture for a folder, aiming for a landmark rather than a random snapshot. Only sights (landmarks, museums,
+ * parks) are looked up by name, since a café's name would match unrelated articles. In order, the first picture wins:
+ *   1. the Wikipedia article for each sight (its own landmark photo)
+ *   2. the nearest landmark's article, for each sight
+ *   3. the article for the folder's main city, then its country (a skyline or famous view)
+ *   4. a saved TikTok's thumbnail
+ * '' when nothing is found (the caller shows a map).
  */
 export async function fetchFolderCover(places) {
-  for (const p of places.slice(0, 8)) {
-    for (const step of [() => commonsPhotoNear(p.lat, p.lng), () => wikipediaPhotoFor(p), () => tiktokThumbnail(p.link)]) {
-      const src = await step();
-      if (src) return src;
-    }
-  }
-  return '';
+  const ordered = places.slice(0, 12);
+  const sights = ordered.filter((p) => SIGHTS.includes(p.cat));
+  const photo = await firstOf([
+    ...sights.map((p) => () => wikipediaPhotoFor(p)),
+    ...sights.map((p) => () => landmarkNear(p.lat, p.lng)),
+    () => { const city = mostCommon(places.map((p) => p.city)); return city ? wikipediaPhotoFor({ name: city, country: mostCommon(places.map((p) => p.country)) }) : ''; },
+    () => { const country = mostCommon(places.map((p) => p.country)); return country ? wikipediaPhotoFor({ name: country }) : ''; },
+    ...ordered.map((p) => () => tiktokThumbnail(p.link)),
+  ]);
+  return photo;
 }
