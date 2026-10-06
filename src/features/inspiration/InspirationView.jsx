@@ -6,6 +6,7 @@ import { plural } from '../../lib/dates.js';
 import { folderOf, groupByCountry, makeFolder, makePlace, mapsUrl, parseLink, placesInFolder, searchPlacesList } from '../../lib/inspiration.js';
 import { takeSharedLink } from '../../lib/shareIntake.js';
 import { useInspiration } from '../../store/InspirationProvider.jsx';
+import { FolderTiles } from './FolderTiles.jsx';
 import { FolderDialog } from './FolderDialog.jsx';
 import { PlaceDialog } from './PlaceDialog.jsx';
 import { ShareHelp } from './ShareHelp.jsx';
@@ -146,7 +147,10 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
             </button>
           </div>
 
-          {folders.length > 0 && (
+          {folders.length > 0 && !inFolderView && !country && !query.trim() && (
+            <FolderTiles folders={folders} places={places} unfiled={placesInFolder(places, folders, '')} />
+          )}
+          {folders.length > 0 && (inFolderView || country || query.trim()) && (
             <nav className="insp-countries insp-folders" aria-label="Folders">
               <a className="chip" href={inspirationHref()} aria-current={!inFolderView && !country ? 'page' : undefined}>All · {places.length}</a>
               {folders.map((f) => (

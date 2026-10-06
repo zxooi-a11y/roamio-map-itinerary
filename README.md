@@ -14,7 +14,7 @@ The **Inspiration** page (home page → Inspiration, or `#/inspiration`) keeps p
 - Each card links to the Instagram post and to Google Maps, and can be edited or deleted.
 - **Send a link straight from Instagram:** the site can be opened as `<site address>/?link=<the link>` and goes to the Save dialog with it filled in. An iPhone Shortcut ("Save to Roamio", set up once; steps are in the *Send links straight from Instagram* panel on the page) uses this from Instagram's *Share to…* menu. On Android, installing the site as an app lists it in the Share menu directly (`public/manifest.webmanifest` declares the share target; `public/sw.js` makes it installable). iPhone Safari does not support web share targets, hence the shortcut. There is also a *Paste* button in the dialog.
 - **A link on its own is enough:** it's saved as "needs a place" and the card has an *Add place* button for later. The link logic is in `src/lib/shareIntake.js`.
-- **Folders:** *New folder* (on the Inspiration page) makes a folder, e.g. "Food" or "Day trips", and opens it. Each place card has a folder chip to move it (and the Save dialog has an optional Folder field); a folder's page (`#/inspiration/folder/<id>`) shows just its places, grouped by country, with *Rename* and *Delete folder*. Deleting a folder keeps its places and moves them back to *No folder*. Folder names are unique, ignoring case.
+- **Folders:** *New folder* (on the Inspiration page) makes a folder, e.g. "Food" or "Day trips", and opens it. On the main Inspiration page folders are big boxes, each a collage of up to four of its places (a Wikipedia photo of the place, or a small map where there isn't one); tap a box to open the folder's page with all its places and links. Each place card has a folder chip to move it (and the Save dialog has an optional Folder field); a folder's page (`#/inspiration/folder/<id>`) shows just its places, grouped by country, with *Rename* and *Delete folder*. Deleting a folder keeps its places and moves them back to *No folder*. Folder names are unique, ignoring case.
 - Stored in the `inspirations` table (folders too, so no extra setup) in Supabase. **One-time setup:** run `supabase/inspirations.sql` in the Supabase SQL Editor. Until then the page explains this and the rest of the app works as normal.
 
 ## Changing a trip's dates
@@ -105,7 +105,7 @@ src/
   components/              shared UI: Icon, MapSnapshot, Sheet (dialog), PlaceSearch, Toast
 
   features/home/           HomeView, Hero (countdown), TripCards, CreateTripDialog
-  features/inspiration/    InspirationView (page), PlaceDialog (save / edit), FolderDialog (new / rename folder), InspirationTeaser (home section)
+  features/inspiration/    InspirationView (page), PlaceDialog (save / edit), FolderDialog (new / rename folder), FolderTiles (the folder boxes), InspirationTeaser (home section)
   features/trip/           TripView, TripMap (Leaflet), DayCard, StopRow, DayThumb,
                            DayFilters, AddStopDialog, useStopDrag (drag-and-drop)
 
