@@ -5,14 +5,15 @@ import { Sheet } from '../../components/Sheet.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { usePlaceSearch } from '../../hooks/usePlaceSearch.js';
 import { guessCategory } from '../../lib/categories.js';
-import { countryName, flagEmoji, parseLink } from '../../lib/inspiration.js';
+import { countryName, flagEmoji, FOLDER_NAME_MAX, makeFolder, parseLink } from '../../lib/inspiration.js';
 import { extractUrl } from '../../lib/shareIntake.js';
 
-const EMPTY = { link: '', spot: null, country: '', countryCode: '', note: '', folderId: '' };
+const NEW = '__new__';
+const EMPTY = { link: '', spot: null, country: '', countryCode: '', note: '', folderId: '', newFolder: '' };
 
 function fromPlace(p) {
   return {
-    link: p.link, note: p.note, folderId: p.folderId, country: p.countryCode ? countryName(p) : p.country, countryCode: p.countryCode,
+    link: p.link, note: p.note, folderId: p.folderId, newFolder: '', country: p.countryCode ? countryName(p) : p.country, countryCode: p.countryCode,
     // a link saved without a place starts with no place picked, ready to search for it
     spot: p.needsPlace ? null : { name: p.name, address: p.address, city: p.city, lat: p.lat, lng: p.lng, cat: p.cat },
   };
@@ -24,12 +25,11 @@ function fromPlace(p) {
  *   place          the place being edited, or null to add a new one
  *   initialLink    a link to start with (arrived from Instagram's share menu)
  *   countryHint    { key, name, code } of the country page this was opened from (pre-fills, and limits the search)
- *   countries      [{ name, code }] already used, offered as suggestions when typing a country
- *   folders        the folders to choose from (the picker is hidden when there are none)
+ *   folders        the folders to choose from; "New folder…" in the picker makes one on save
  *   defaultFolderId  the folder a new place starts in (the folder page it was opened from)
- *   onSave(fields, { another })  another = keep the dialog open for the next place
+ *   onSave(fields, { another, newFolder })  newFolder = a folder to create along with the place; another = keep the dialog open for the next place
  */
-export function PlaceDialog({ place, initialLink = '', countryHint, countries, folders = [], defaultFolderId = '', onSave, onClose }) {
+export function PlaceDialog({ place, initialLink = '', countryHint, folders = [], defaultFolderId = '', onSave, onClose }) {
   const editing = Boolean(place);
   const toast = useToast();
   const initial = editing ? fromPlace(place)
@@ -69,17 +69,17 @@ export function PlaceDialog({ place, initialLink = '', countryHint, countries, f
     const name = search.q.trim();
     set({ spot: { name, address: '', city: '', lat: null, lng: null, cat: guessCategory(name) } });
   };
-  const changeCountry = (value) => {
-    // Typing a country we already use links it to the same group (and flag)
-    const known = countries.find((c) => c.name.toLowerCase() === value.trim().toLowerCase());
-    set({ country: value, countryCode: known?.code || '' });
-  };
 
   // A place, or just a valid link (saved now, place added later)
   const linkOnly = !form.spot && Boolean(link);
-  const canSave = (Boolean(form.spot?.name) || linkOnly) && !linkBad;
+  const creating = form.folderId === NEW;
+  const newName = form.newFolder.replace(/\s+/g, ' ').trim();
+  const existing = creating && folders.find((f) => f.name.toLowerCase() === newName.toLowerCase());
+  const canSave = (Boolean(form.spot?.name) || linkOnly) && !linkBad && (!creating || Boolean(newName));
   const save = (another) => {
     if (!canSave) return;
+    const newFolder = creating && !existing ? makeFolder(newName) : null;
+    const folderId = newFolder ? newFolder.id : existing ? existing.id : folders.some((f) => f.id === form.folderId) ? form.folderId : '';
     const spot = form.spot || { name: link.label, address: '', city: '', lat: null, lng: null, cat: 'Other' };
     onSave({
       ...spot,
@@ -88,11 +88,11 @@ export function PlaceDialog({ place, initialLink = '', countryHint, countries, f
       link: link?.url || '',
       note: form.note.trim(),
       needsPlace: linkOnly,
-      folderId: folders.some((f) => f.id === form.folderId) ? form.folderId : '',
-    }, { another });
+      folderId,
+    }, { another, newFolder });
     if (another) {
       // keep the country and folder for the next one; clear the rest
-      setForm({ ...EMPTY, country: form.country, countryCode: form.countryCode, folderId: form.folderId });
+      setForm({ ...EMPTY, country: form.country, countryCode: form.countryCode, folderId });
       search.reset();
     }
   };
@@ -150,22 +150,21 @@ export function PlaceDialog({ place, initialLink = '', countryHint, countries, f
         </div>
 
         <div className="wide">
-          <label className="ad-lbl" htmlFor="pl-country">Country</label>
-          <input className="ad-in" id="pl-country" list="pl-countries" autoComplete="off" placeholder="Filled in when you pick a place"
-            value={form.country} onChange={(e) => changeCountry(e.target.value)} />
-          <datalist id="pl-countries">{countries.map((c) => <option key={c.code || c.name} value={c.name} />)}</datalist>
+          <label className="ad-lbl" htmlFor="pl-folder">Folder (optional)</label>
+          <select className="ad-in" id="pl-folder" value={creating || folders.some((f) => f.id === form.folderId) ? form.folderId : ''}
+            onChange={(e) => set({ folderId: e.target.value, newFolder: e.target.value === NEW && !form.newFolder ? form.country : form.newFolder })}>
+            <option value="">No folder</option>
+            {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            <option value={NEW}>+ New folder…</option>
+          </select>
+          {creating && (
+            <>
+              <input className="ad-in pl-newfolder" aria-label="New folder name" autoFocus maxLength={FOLDER_NAME_MAX} placeholder="Folder name, e.g. Malaysia"
+                value={form.newFolder} onChange={(e) => set({ newFolder: e.target.value })} />
+              {existing && <p className="pl-later">You already have “{existing.name}”. The place will go in that folder.</p>}
+            </>
+          )}
         </div>
-
-        {folders.length > 0 && (
-          <div className="wide">
-            <label className="ad-lbl" htmlFor="pl-folder">Folder (optional)</label>
-            <select className="ad-in" id="pl-folder" value={folders.some((f) => f.id === form.folderId) ? form.folderId : ''}
-              onChange={(e) => set({ folderId: e.target.value })}>
-              <option value="">No folder</option>
-              {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
-          </div>
-        )}
 
         <div className="wide">
           <label className="ad-lbl" htmlFor="pl-note">Note (optional)</label>

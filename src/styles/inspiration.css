@@ -128,3 +128,4 @@
 @media (max-width: 560px) { .ft-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .ft-tile { border-radius: 16px; } .ft-name { font-size: 16px; } }
 @media (prefers-reduced-motion: reduce) { .ft-tile { transition: none; } .ft-tile:hover { transform: none; } }
 .ft-map-in { --c: var(--accent); }
+.pl-newfolder { margin-top: 8px; }

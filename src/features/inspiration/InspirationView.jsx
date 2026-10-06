@@ -40,7 +40,6 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
   const groups = useMemo(() => groupByCountry(pagePlaces), [pagePlaces]);
   const allGroups = useMemo(() => groupByCountry(places), [places]);
   const current = country && !inFolderView ? groups.find((g) => routeKey(g) === country) : null;
-  const countries = useMemo(() => allGroups.filter((g) => g.key).map((g) => ({ name: g.name, code: g.places[0].countryCode })), [allGroups]);
   const unfiledCount = useMemo(() => placesInFolder(places, folders, '').length, [places, folders]);
 
   useEffect(() => {
@@ -59,7 +58,8 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
     .map((g) => ({ ...g, places: searchPlacesList(g.places, query) }))
     .filter((g) => g.places.length);
 
-  const save = (fields, { another }) => {
+  const save = (fields, { another, newFolder }) => {
+    if (newFolder) dispatch({ type: 'folder/add', folder: newFolder });
     if (dialog.place) {
       dispatch({ type: 'place/update', id: dialog.place.id, patch: fields });
       toast(`Saved changes to ${fields.name}.`);
@@ -223,7 +223,7 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
       )}
 
       {dialog && (
-        <PlaceDialog place={dialog.place} initialLink={dialog.link} countries={countries} folders={folders}
+        <PlaceDialog place={dialog.place} initialLink={dialog.link} folders={folders}
           defaultFolderId={folder ? folder.id : ''} onClose={() => setDialog(null)} onSave={save}
           countryHint={current && current.key ? { key: current.key, name: current.name, code: current.places[0].countryCode } : null} />
       )}
