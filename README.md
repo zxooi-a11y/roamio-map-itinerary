@@ -12,6 +12,8 @@ The **Inspiration** page (home page → Inspiration, or `#/inspiration`) keeps p
 - **Countries** are grouped by ISO code from the place search, so they stay together however the name is spelled; a typed country matching one you already use joins that group.
 - On a country's page, searching for a new place is limited to that country (with a *Search everywhere* option).
 - Each card links to the Instagram post and to Google Maps, and can be edited or deleted.
+- **Send a link straight from Instagram:** the site can be opened as `<site address>/?link=<the link>` and goes to the Save dialog with it filled in. An iPhone Shortcut ("Save to Roamio", set up once; steps are in the *Send links straight from Instagram* panel on the page) uses this from Instagram's *Share to…* menu. On Android, installing the site as an app lists it in the Share menu directly (`public/manifest.webmanifest` declares the share target; `public/sw.js` makes it installable). iPhone Safari does not support web share targets, hence the shortcut. There is also a *Paste* button in the dialog.
+- **A link on its own is enough:** it's saved as "needs a place" and the card has an *Add place* button for later. The link logic is in `src/lib/shareIntake.js`.
 - Stored in the `inspirations` table in Supabase. **One-time setup:** run `supabase/inspirations.sql` in the Supabase SQL Editor. Until then the page explains this and the rest of the app works as normal.
 
 ## Changing a trip's dates
@@ -84,6 +86,7 @@ src/
     mapStyle.js            the basemap (one place for the interactive map and the snapshots)
     tiles.js               static map snapshots (covers, thumbnails)
     cloud.js               Supabase: load / save / delete rows of any table (trips, inspirations)
+    shareIntake.js         picks a shared link out of ?link= / ?url= / ?text=, opens the Save dialog with it (unit-tested)
     inspiration.js         saved places: link clean-up, grouping by country, search, map links (unit-tested)
     supabaseConfig.js      project URL + publishable key
     import/                import a file of locations: parse.js (CSV, Markdown, rows), readFile.js (file → places,

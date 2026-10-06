@@ -63,3 +63,27 @@
 .insp-teaser-empty { display: flex; align-items: center; gap: 12px; padding: 16px; border: 1.5px dashed color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 18px;
   color: var(--accent); font-weight: 600; text-decoration: none; background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .insp-teaser-empty .ico { width: 24px; height: 24px; flex: none; }
+
+/* Saving a link before its place is known */
+.pl-link-row { display: flex; gap: 8px; align-items: stretch; }
+.pl-link-row .ad-in { flex: 1 1 auto; min-width: 0; }
+.pl-paste { flex: none; padding: 0 14px; }
+.pl-later { margin: 8px 2px 0; color: var(--muted); font-size: .82rem; }
+.insp-chip.is-todo { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
+
+/* Help: sending links from Instagram */
+.share-help { margin: 4px 0 6px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); padding: 0 14px; }
+.share-help > summary { display: flex; align-items: center; gap: 8px; padding: 12px 0; cursor: pointer; font-weight: 600; color: var(--accent); list-style: none; }
+.share-help > summary::-webkit-details-marker { display: none; }
+.share-help > summary::after { content: "▾"; margin-left: auto; transition: transform .15s; }
+.share-help[open] > summary::after { transform: rotate(180deg); }
+.share-help .ico { width: 18px; height: 18px; }
+.share-tabs { display: flex; gap: 8px; margin: 0 0 10px; flex-wrap: wrap; }
+.share-tabs .chip[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.share-steps { font-size: .9rem; }
+.share-steps p { margin: 0 0 8px; color: var(--muted); }
+.share-steps ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.share-url { display: block; margin: 6px 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font-size: .78rem; overflow-wrap: anywhere; user-select: all; }
+.share-copy { padding: 6px 12px; font-size: .85rem; }
+.share-note { margin: 12px 0; color: var(--muted); font-size: .85rem; }
+.insp-empty-card .share-help { margin-top: 14px; text-align: left; }

@@ -4,8 +4,10 @@ import { useToast } from '../../components/Toast.jsx';
 import { inspirationHref } from '../../hooks/useHashRoute.js';
 import { plural } from '../../lib/dates.js';
 import { groupByCountry, makePlace, mapsUrl, parseLink, searchPlacesList } from '../../lib/inspiration.js';
+import { takeSharedLink } from '../../lib/shareIntake.js';
 import { useInspiration } from '../../store/InspirationProvider.jsx';
 import { PlaceDialog } from './PlaceDialog.jsx';
+import { ShareHelp } from './ShareHelp.jsx';
 
 /** The URL key of a country group; places with no country use "-". */
 const routeKey = (g) => g.key || '-';
@@ -20,7 +22,7 @@ export function InspirationView({ country }) {
   const { places, dispatch, status, loadError, reload } = useInspiration();
   const toast = useToast();
   const [query, setQuery] = useState('');
-  const [dialog, setDialog] = useState(null); // null | { place: null } (new) | { place } (edit)
+  const [dialog, setDialog] = useState(null); // null | { place: null, link? } (new) | { place } (edit)
 
   const groups = useMemo(() => groupByCountry(places), [places]);
   const current = country ? groups.find((g) => routeKey(g) === country) : null;
@@ -28,6 +30,12 @@ export function InspirationView({ country }) {
 
   useEffect(() => { document.title = (current ? current.name + ' · ' : '') + 'Inspiration · Trip planner'; }, [current]);
   useEffect(() => { window.scrollTo(0, 0); setQuery(''); }, [country]);
+
+  // A link sent from Instagram's share menu (or a shortcut) opens the Save dialog with it filled in.
+  useEffect(() => {
+    const link = takeSharedLink();
+    if (link) setDialog({ place: null, link });
+  }, []);
 
   const shown = (country ? groups.filter((g) => routeKey(g) === country) : groups)
     .map((g) => ({ ...g, places: searchPlacesList(g.places, query) }))
@@ -39,7 +47,7 @@ export function InspirationView({ country }) {
       toast(`Saved changes to ${fields.name}.`);
     } else {
       dispatch({ type: 'place/add', place: makePlace(fields) });
-      toast(`Saved ${fields.name}.`);
+      toast(fields.needsPlace ? 'Link saved. Add its place when you have a moment.' : `Saved ${fields.name}.`);
     }
     if (!another) setDialog(null);
   };
@@ -91,11 +99,13 @@ export function InspirationView({ country }) {
             </nav>
           )}
 
+          {places.length > 0 && <ShareHelp />}
           {!places.length && (
             <div className="insp-empty-card">
               <Icon name="instagram" />
               <p><strong>Save places from Instagram for your future trips.</strong></p>
               <p>Copy a post or reel's link, tap <em>Save a place</em>, paste it and search the place's name. Places are grouped by country, so when you plan a trip everything you've saved for that country is in one spot.</p>
+              <ShareHelp defaultOpen />
             </div>
           )}
           {places.length > 0 && !shown.length && (
@@ -119,7 +129,7 @@ export function InspirationView({ country }) {
       )}
 
       {dialog && (
-        <PlaceDialog place={dialog.place} countries={countries} onClose={() => setDialog(null)} onSave={save}
+        <PlaceDialog place={dialog.place} initialLink={dialog.link} countries={countries} onClose={() => setDialog(null)} onSave={save}
           countryHint={current && current.key ? { key: current.key, name: current.name, code: current.places[0].countryCode } : null} />
       )}
     </div>
@@ -128,12 +138,13 @@ export function InspirationView({ country }) {
 
 function PlaceCard({ place: p, onEdit, onDelete }) {
   const link = p.link ? parseLink(p.link) : null;
-  const where = [p.city, !p.city && p.address].filter(Boolean)[0] || '';
+  const where = p.needsPlace ? '' : [p.city, !p.city && p.address].filter(Boolean)[0] || '';
   return (
     <li className="insp-card">
       <span className="ad-ico"><Icon name={p.cat} /></span>
       <div className="insp-text">
         <div className="insp-name">{p.name}</div>
+        {p.needsPlace && <div className="insp-where">Which place is this? Tap <strong>Add place</strong>.</div>}
         {where && <div className="insp-where">{where}</div>}
         {p.note && <p className="insp-note">{p.note}</p>}
         <div className="insp-actions">
@@ -142,7 +153,9 @@ function PlaceCard({ place: p, onEdit, onDelete }) {
               <Icon name={link.kind === 'instagram' ? 'instagram' : 'link'} />{link.kind === 'instagram' ? 'Instagram' : link.label}
             </a>
           )}
-          <a className="insp-chip" href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"><Icon name="Other" />Map</a>
+          {p.needsPlace
+            ? <button className="insp-chip is-todo" type="button" onClick={onEdit}><Icon name="plus" />Add place</button>
+            : <a className="insp-chip" href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"><Icon name="Other" />Map</a>}
           <button className="insp-chip insp-icon-chip" type="button" aria-label={'Edit ' + p.name} title="Edit" onClick={onEdit}><Icon name="edit" /></button>
         </div>
       </div>

@@ -73,6 +73,12 @@ test('normalizing repairs or drops bad data', () => {
   assert.deepEqual([made.lat, made.cat], [35.1, 'Café']);
 });
 
+test('a link saved before its place is known is flagged and named after the link', () => {
+  const p = makePlace({ name: 'Instagram reel', link: 'instagram.com/reel/AbC?igsh=1', needsPlace: true });
+  assert.deepEqual([p.needsPlace, p.name, p.link, p.lat, p.country], [true, 'Instagram reel', 'https://www.instagram.com/reel/AbC/', null, '']);
+  assert.equal(makePlace({ name: 'x' }).needsPlace, false);
+});
+
 test('place search results now carry city and ISO country code', () => {
   const r = parseResult({ name: 'Ichiran', display_name: 'Ichiran, Shibuya, Tokyo, Japan', lat: '35.66', lon: '139.70', category: 'amenity', type: 'restaurant',
     address: { city: 'Shibuya', country: 'Japan', country_code: 'jp' } });

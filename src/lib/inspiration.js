@@ -4,7 +4,7 @@ import { newId } from './ids.js';
 /*
  * Inspiration: places saved for future travels, usually from an Instagram post.
  *
- * Place { id, name, address, city, country, countryCode, lat, lng, cat, link, note, createdAt, updatedAt }
+ * Place { id, name, address, city, country, countryCode, lat, lng, cat, link, note, needsPlace, createdAt, updatedAt }
  *   country / countryCode   from the place search (countryCode is the ISO "jp", used to group), or typed in
  *   lat / lng               null when the place was typed in rather than found
  *   link                    the Instagram post / reel (or any other link), cleaned up by parseLink
@@ -126,6 +126,7 @@ export function normalizePlace(p) {
     cat: CATEGORIES.includes(p.cat) ? p.cat : guessCategory(name),
     link: p.link ? (parseLink(p.link)?.url || '') : '',
     note: String(p.note || ''),
+    needsPlace: Boolean(p.needsPlace),
     createdAt: Number(p.createdAt) || 0,
     updatedAt: Number(p.updatedAt) || 0,
   };
