@@ -6,17 +6,16 @@ import { plural } from '../../lib/dates.js';
 import { folderFlag } from '../../lib/inspiration.js';
 import { fetchFolderCover } from '../../lib/photos.js';
 
-/** One cover for a folder: a photo of one of its places if any source has one, else a map of where they are, else an icon. */
+/** One cover for a folder: a photo found from the folder's name, else a map of where they are, else an icon. */
 function FolderCover({ items, name }) {
   const [photo, setPhoto] = useState('');
-  const key = items.map((p) => p.id).join();
   useEffect(() => {
     let live = true;
     setPhoto('');
-    if (items.length) fetchFolderCover(items, name).then((src) => { if (live) setPhoto(src); });
+    if (name) fetchFolderCover(name).then((src) => { if (live) setPhoto(src); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, name]);
+  }, [name]);
 
   if (photo) return <img className="ft-img" src={photo} alt="" loading="lazy" draggable="false" onError={() => setPhoto('')} />;
   const points = items.filter((p) => p.lat !== null && p.lat !== undefined && p.lng !== null && p.lng !== undefined);
