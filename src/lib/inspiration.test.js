@@ -151,3 +151,13 @@ test('a folder named after a country gets its flag even when its places have no 
   assert.equal(folderFlag('m', [], 'Food'), '');
   assert.equal(codeForName('  france '), 'fr');
 });
+
+test('a folder named after a country or city has a landmark to use as its cover', async () => {
+  const { landmarkFor } = await import('./landmarks.js');
+  assert.equal(landmarkFor('Malaysia', codeForName), 'Petronas Towers');
+  assert.equal(landmarkFor(' uk ', codeForName), 'Big Ben');
+  assert.equal(landmarkFor('United States', codeForName), 'Statue of Liberty');
+  assert.equal(landmarkFor('Kuala Lumpur', codeForName), 'Petronas Towers');
+  assert.equal(landmarkFor('Food', codeForName), '');
+  assert.equal(landmarkFor('', codeForName), '');
+});

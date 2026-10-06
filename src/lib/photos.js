@@ -1,3 +1,4 @@
+import { landmarkFor } from './landmarks.js';
 import { codeForName, countryName } from './inspiration.js';
 
 /** A lead photo for a trip's destination from Wikipedia, or '' if none is found. */
@@ -84,14 +85,19 @@ function articlePhoto(title) {
 }
 
 /**
- * One picture for a folder, found from the folder's NAME only (not its places): a photograph from the Wikipedia
- * article named after it ("Malaysia"), skipping flags, emblems and maps. '' when nothing is found (the caller shows
- * a map of the places instead).
+ * One picture for a folder, found from the folder's NAME only (not its places): the photo of that place's best-known
+ * landmark ("Malaysia" -> the Petronas Towers). For a name we have no landmark for, a Wikipedia search for
+ * "<name> landmark", then a photograph from the article named after it (skipping flags, emblems and maps).
+ * '' when nothing is found (the caller shows a map of the places instead).
  */
 export async function fetchFolderCover(folderName) {
   const name = String(folderName || '').trim();
   if (!name) return '';
   const code = codeForName(name);
   const full = code ? countryName({ countryCode: code }) || name : name; // "UK" -> "United Kingdom"
-  return (await articlePhoto(full)) || (full !== name ? articlePhoto(name) : '');
+  const landmark = landmarkFor(name, codeForName);
+  return (landmark && (await articlePhoto(landmark)))
+    || (!landmark && (await wikipediaPhotoFor({ name: `${full} famous landmark` })))
+    || (await articlePhoto(full))
+    || '';
 }
