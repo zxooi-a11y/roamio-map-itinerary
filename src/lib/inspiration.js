@@ -94,10 +94,36 @@ export function searchPlacesList(places, query) {
   });
 }
 
-/** A Google Maps link for the place: exact coordinates when known, otherwise a search for its name. */
+/** A Google Maps link that opens the place itself: a search for its name and address (coordinates only if it has neither). */
 export function mapsUrl(p) {
-  const q = p.lat != null && p.lng != null ? `${p.lat},${p.lng}` : [p.name, p.city, countryName(p)].filter(Boolean).join(', ');
+  const named = [p.name, p.address || p.city, !p.address && countryName(p)].filter(Boolean).join(', ');
+  const q = p.name ? named : p.lat != null && p.lng != null ? `${p.lat},${p.lng}` : named;
   return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q);
+}
+
+/** The address of an inline preview (Instagram post / reel, TikTok video) for a parsed link, or '' when there is none. */
+export function embedUrl(link) {
+  if (!link) return '';
+  try {
+    const u = new URL(link.url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (link.kind === 'instagram' && ['p', 'reel', 'reels', 'tv'].includes(parts[0]) && parts[1]) {
+      return `https://www.instagram.com/${parts[0] === 'reels' ? 'reel' : parts[0]}/${parts[1]}/embed`;
+    }
+    if (link.kind === 'tiktok') {
+      const i = parts.indexOf('video');
+      if (i >= 0 && /^\d+$/.test(parts[i + 1] || '')) return `https://www.tiktok.com/embed/v2/${parts[i + 1]}`;
+    }
+  } catch { /* not previewable */ }
+  return '';
+}
+
+/** The flag of the country most of a folder's places are in ('' if none has one). */
+export function folderFlag(folderId, places) {
+  const counts = new Map();
+  for (const p of places) if (p.folderId === folderId && p.countryCode) counts.set(p.countryCode, (counts.get(p.countryCode) || 0) + 1);
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return top ? flagEmoji(top[0]) : '';
 }
 
 /* ---------- Creating / repairing ---------- */

@@ -3,6 +3,7 @@ import { Icon } from '../../components/Icon.jsx';
 import { MapSnapshot } from '../../components/MapSnapshot.jsx';
 import { folderHref } from '../../hooks/useHashRoute.js';
 import { plural } from '../../lib/dates.js';
+import { folderFlag } from '../../lib/inspiration.js';
 import { fetchPlacePhoto } from '../../lib/photos.js';
 
 const MOSAIC = 4;
@@ -45,7 +46,7 @@ export function FolderTiles({ folders, places, unfiled }) {
                     : <span className="ft-empty"><Icon name="folder" /></span>}
                 </span>
                 <span className="ft-label">
-                  <span className="ft-name">{t.name}</span>
+                  <span className="ft-name">{t.plain ? '' : folderFlag(t.id, places) + ' '}{t.name}</span>
                   <span className="ft-count">{t.items.length ? plural(t.items.length, 'place') : 'Empty'}</span>
                 </span>
               </a>

@@ -129,3 +129,5 @@
 @media (prefers-reduced-motion: reduce) { .ft-tile { transition: none; } .ft-tile:hover { transform: none; } }
 .ft-map-in { --c: var(--accent); }
 .pl-newfolder { margin-top: 8px; }
+.insp-embed { display: block; width: 100%; max-width: 380px; height: 560px; margin-top: 10px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.insp-embed.is-tiktok { height: 600px; }

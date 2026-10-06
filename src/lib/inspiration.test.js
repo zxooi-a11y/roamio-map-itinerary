@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countryKey, flagEmoji, groupByCountry, makePlace, mapsUrl, normalizePlace, normalizePlaces, parseLink, searchPlacesList } from './inspiration.js';
+import { embedUrl, folderFlag, countryKey, flagEmoji, groupByCountry, makePlace, mapsUrl, normalizePlace, normalizePlaces, parseLink, searchPlacesList } from './inspiration.js';
 import { parseResult } from './geocode.js';
 
 test('Instagram links are cleaned of share tracking and labelled', () => {
@@ -58,7 +58,8 @@ test('search matches every word, ignoring accents and case', () => {
 });
 
 test('maps link uses exact coordinates when known, else a name search', () => {
-  assert.equal(mapsUrl(P('A', { lat: 35.6, lng: 139.7 })), 'https://www.google.com/maps/search/?api=1&query=35.6%2C139.7');
+  assert.equal(mapsUrl(P('A', { lat: 35.6, lng: 139.7 })), 'https://www.google.com/maps/search/?api=1&query=A');
+  assert.match(mapsUrl(P('Jaslyn Cakes', { address: 'Jalan Kiara, Kuala Lumpur', lat: 3.1, lng: 101.6 })), /query=Jaslyn%20Cakes%2C%20Jalan%20Kiara%2C%20Kuala%20Lumpur$/);
   assert.match(mapsUrl(P('Ichiran Shibuya', { city: 'Tokyo' })), /query=Ichiran%20Shibuya%2C%20Tokyo/);
 });
 
@@ -125,4 +126,20 @@ test('duplicate folder names are caught regardless of case and spacing, but rena
   assert.equal(folderNameTaken([f], '  bali   TRIP '), true);
   assert.equal(folderNameTaken([f], 'Bali'), false);
   assert.equal(folderNameTaken([f], 'bali trip', f.id), false);
+});
+
+test('inline previews exist for Instagram posts/reels and TikTok videos with an id', () => {
+  assert.equal(embedUrl(parseLink('https://www.instagram.com/reel/C9xYz123AbC/?igsh=1')), 'https://www.instagram.com/reel/C9xYz123AbC/embed');
+  assert.equal(embedUrl(parseLink('instagram.com/p/ABC123')), 'https://www.instagram.com/p/ABC123/embed');
+  assert.equal(embedUrl(parseLink('https://www.tiktok.com/@u/video/7301234567890123456?x=1')), 'https://www.tiktok.com/embed/v2/7301234567890123456');
+  assert.equal(embedUrl(parseLink('https://vm.tiktok.com/ZMabc/')), '');
+  assert.equal(embedUrl(parseLink('https://www.instagram.com/tokyo.cafes/')), '');
+  assert.equal(embedUrl(parseLink('https://example.com/x')), '');
+  assert.equal(embedUrl(null), '');
+});
+
+test('a folder takes the flag of its most common country', () => {
+  const ps = [{ folderId: 'f', countryCode: 'gb' }, { folderId: 'f', countryCode: 'gb' }, { folderId: 'f', countryCode: 'fr' }, { folderId: 'g', countryCode: 'jp' }];
+  assert.equal(folderFlag('f', ps), '🇬🇧');
+  assert.equal(folderFlag('none', ps), '');
 });

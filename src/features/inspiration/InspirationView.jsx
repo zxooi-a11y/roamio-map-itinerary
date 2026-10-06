@@ -3,7 +3,7 @@ import { Icon } from '../../components/Icon.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { folderHref, inspirationHref } from '../../hooks/useHashRoute.js';
 import { plural } from '../../lib/dates.js';
-import { folderOf, groupByCountry, makeFolder, makePlace, mapsUrl, parseLink, placesInFolder, searchPlacesList } from '../../lib/inspiration.js';
+import { embedUrl, folderFlag, groupByCountry, makeFolder, makePlace, mapsUrl, parseLink, placesInFolder, searchPlacesList } from '../../lib/inspiration.js';
 import { takeSharedLink } from '../../lib/shareIntake.js';
 import { useInspiration } from '../../store/InspirationProvider.jsx';
 import { FolderTiles } from './FolderTiles.jsx';
@@ -72,11 +72,6 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
   const remove = (p) => {
     if (confirm(`Delete “${p.name}” from your saved places?`)) dispatch({ type: 'place/remove', id: p.id });
   };
-  const moveTo = (p, folderIdToSet) => {
-    dispatch({ type: 'place/update', id: p.id, patch: { folderId: folderIdToSet } });
-    const target = folders.find((f) => f.id === folderIdToSet);
-    toast(target ? `Moved “${p.name}” to ${target.name}.` : `Took “${p.name}” out of its folder.`);
-  };
 
   const saveFolder = (name) => {
     if (folderDialog.folder) {
@@ -102,7 +97,7 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
     navigate?.(inspirationHref());
   };
 
-  const title = folder ? `📁 ${folder.name}` : folderId === UNFILED ? 'Not in a folder'
+  const title = folder ? `${folderFlag(folder.id, places) || '📁'} ${folder.name}` : folderId === UNFILED ? 'Not in a folder'
     : current ? `${current.flag ? current.flag + ' ' : ''}${current.name}` : 'Inspiration';
   const countLine = inFolderView
     ? plural(pagePlaces.length, 'saved place') + (groups.length > 1 ? ` · ${countriesText(groups.length)}` : '')
@@ -150,7 +145,7 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
           {folders.length > 0 && !inFolderView && !country && !query.trim() && (
             <FolderTiles folders={folders} places={places} unfiled={placesInFolder(places, folders, '')} />
           )}
-          {folders.length > 0 && (inFolderView || country || query.trim()) && (
+          {folders.length > 0 && !inFolderView && (country || query.trim()) && (
             <nav className="insp-countries insp-folders" aria-label="Folders">
               <a className="chip" href={inspirationHref()} aria-current={!inFolderView && !country ? 'page' : undefined}>All · {places.length}</a>
               {folders.map((f) => (
@@ -213,8 +208,7 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
               )}
               <ul className="insp-grid">
                 {g.places.map((p) => (
-                  <PlaceCard key={p.id} place={p} folders={folders} onEdit={() => setDialog({ place: p })} onDelete={() => remove(p)}
-                    onMove={(id) => moveTo(p, id)} />
+                  <PlaceCard key={p.id} place={p} onEdit={() => setDialog({ place: p })} onDelete={() => remove(p)} />
                 ))}
               </ul>
             </section>
@@ -232,9 +226,10 @@ export function InspirationView({ country, folder: folderId = '', navigate }) {
   );
 }
 
-function PlaceCard({ place: p, folders, onEdit, onDelete, onMove }) {
+function PlaceCard({ place: p, onEdit, onDelete }) {
   const link = p.link ? parseLink(p.link) : null;
-  const inFolder = folderOf(p, folders);
+  const embed = embedUrl(link);
+  const [preview, setPreview] = useState(false);
   const where = p.needsPlace ? '' : [p.city, !p.city && p.address].filter(Boolean)[0] || '';
   return (
     <li className="insp-card">
@@ -250,20 +245,20 @@ function PlaceCard({ place: p, folders, onEdit, onDelete, onMove }) {
               <Icon name={link.kind === 'instagram' ? 'instagram' : 'link'} />{link.kind === 'instagram' ? 'Instagram' : link.label}
             </a>
           )}
+          {embed && (
+            <button className="insp-chip" type="button" aria-expanded={preview} onClick={() => setPreview((v) => !v)}>
+              <Icon name="play" />{preview ? 'Hide preview' : 'Preview'}
+            </button>
+          )}
           {p.needsPlace
             ? <button className="insp-chip is-todo" type="button" onClick={onEdit}><Icon name="plus" />Add place</button>
             : <a className="insp-chip" href={mapsUrl(p)} target="_blank" rel="noopener noreferrer"><Icon name="Other" />Map</a>}
-          {folders.length > 0 && (
-            <label className={'insp-chip insp-folder-chip' + (inFolder ? ' is-filed' : '')}>
-              <Icon name="folder" /><span className="insp-folder-name">{inFolder ? inFolder.name : 'Folder'}</span>
-              <select aria-label={`Folder for ${p.name}`} value={inFolder ? inFolder.id : ''} onChange={(e) => onMove(e.target.value)}>
-                <option value="">No folder</option>
-                {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-              </select>
-            </label>
-          )}
           <button className="insp-chip insp-icon-chip" type="button" aria-label={'Edit ' + p.name} title="Edit" onClick={onEdit}><Icon name="edit" /></button>
         </div>
+        {preview && embed && (
+          <iframe className={'insp-embed is-' + link.kind} src={embed} title={'Preview of ' + p.name} loading="lazy"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" allow="encrypted-media" />
+        )}
       </div>
       <button className="icon-btn del insp-del" type="button" aria-label={'Delete ' + p.name} onClick={onDelete}>✕</button>
     </li>
