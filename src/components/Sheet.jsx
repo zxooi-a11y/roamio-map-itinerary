@@ -14,10 +14,15 @@ export function Sheet({ onClose, titleId, title, subtitle, footer, children, sty
     dlg.showModal();
     document.body.classList.add('modal-open');
 
-    // Keep the sheet within the visible area: on phones the on-screen keyboard shrinks the visual
-    // viewport without changing the layout viewport, so CSS units alone would let it be covered.
+    // Size the sheet to the visible area, but never shrink it for the on-screen keyboard: it stays full height
+    // and the page pans to the field being typed in. Only a bigger visible area (or a rotation) resizes it.
     const vv = window.visualViewport;
-    const sync = () => dlg.style.setProperty('--vv-h', vv.height + 'px');
+    let h = 0, w = 0;
+    const sync = () => {
+      if (vv.width !== w) { w = vv.width; h = 0; }
+      h = Math.max(h, vv.height);
+      dlg.style.setProperty('--vv-h', h + 'px');
+    };
     if (vv) { sync(); vv.addEventListener('resize', sync); }
 
     return () => {
