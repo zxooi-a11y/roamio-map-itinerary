@@ -62,19 +62,36 @@ export function wikipediaPhotoFor(place) {
   }))));
 }
 
+// Files that are a flag, emblem, map or diagram rather than a photograph of the place
+const NOT_A_PHOTO = /flag|coat[_ ]of[_ ]arms|emblem|seal[_ ]of|logo|locator|location|map[_ .]|\bmap\b|diagram|\.svg|\.gif|\.png/i;
+
+/** A photograph from an article (named exactly): its lead image if that is a photo, else the first photo in the article. */
+function articlePhoto(title) {
+  return once('a:' + title, async () => {
+    const lead = await getJson('https://en.wikipedia.org/w/api.php?' + query({
+      action: 'query', titles: title, redirects: '1', prop: 'pageimages', piprop: 'thumbnail|name', pithumbsize: '700', pilicense: 'any',
+    }));
+    const page = Object.values(lead.query?.pages || {})[0];
+    if (page?.thumbnail?.source && !NOT_A_PHOTO.test(page.pageimage || '') && !NOT_A_PHOTO.test(page.thumbnail.source)) return page.thumbnail.source;
+    const imgs = await getJson('https://en.wikipedia.org/w/api.php?' + query({
+      action: 'query', titles: title, redirects: '1', generator: 'images', gimlimit: '30',
+      prop: 'imageinfo', iiprop: 'url|mime', iiurlwidth: '700',
+    }));
+    return Object.values(imgs.query?.pages || {})
+      .map((p) => ({ title: p.title || '', info: p.imageinfo?.[0] }))
+      .filter((x) => x.info?.mime === 'image/jpeg' && x.info.thumburl && !NOT_A_PHOTO.test(x.title))[0]?.info.thumburl || '';
+  });
+}
+
 /**
- * One landmark-style picture for a folder, found from the folder's NAME only (not its places): the Wikipedia article
- * "Tourism in <name>" usually opens with the best-known view, then the article for <name> itself.
- * '' when nothing is found (the caller shows a map of the places instead).
+ * One picture for a folder, found from the folder's NAME only (not its places): a photograph from the Wikipedia
+ * article named after it ("Malaysia"), skipping flags, emblems and maps. '' when nothing is found (the caller shows
+ * a map of the places instead).
  */
 export async function fetchFolderCover(folderName) {
   const name = String(folderName || '').trim();
   if (!name) return '';
   const code = codeForName(name);
   const full = code ? countryName({ countryCode: code }) || name : name; // "UK" -> "United Kingdom"
-  for (const term of [`Tourism in ${full}`, `${full} landmark`, full, name]) {
-    const src = await wikipediaPhotoFor({ name: term });
-    if (src) return src;
-  }
-  return '';
+  return (await articlePhoto(full)) || (full !== name ? articlePhoto(name) : '');
 }
