@@ -87,3 +87,17 @@
 .share-copy { padding: 6px 12px; font-size: .85rem; }
 .share-note { margin: 12px 0; color: var(--muted); font-size: .85rem; }
 .insp-empty-card .share-help { margin-top: 14px; text-align: left; }
+
+/* Folders */
+.insp-newfolder { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 10px 14px; border-radius: 12px; }
+.insp-newfolder .ico { width: 16px; height: 16px; }
+.insp-folders .chip { display: inline-flex; align-items: center; gap: 6px; }
+.insp-folders .chip .ico { width: 15px; height: 15px; }
+.insp-folders .chip[aria-current="page"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.insp-folder-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.insp-folder-chip { position: relative; max-width: 100%; }
+.insp-folder-chip.is-filed { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.insp-folder-name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.insp-folder-chip select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+.insp-folder-chip:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+.fd-error { min-height: 1.3em; margin-top: 6px; }

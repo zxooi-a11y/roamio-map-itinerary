@@ -31,7 +31,7 @@ function Routes() {
   return (
     <>
       {trip ? <TripView key={trip.id} trip={trip} />
-        : route.view === 'inspiration' ? <InspirationView country={route.country} navigate={navigate} />
+        : route.view === 'inspiration' ? <InspirationView country={route.country} folder={route.folder} navigate={navigate} />
         : <HomeView navigate={navigate} />}
       {sync !== 'saved' && (
         <div className={'sync-badge' + (sync === 'error' ? ' is-error' : '')} role="status">

@@ -127,9 +127,54 @@ export function normalizePlace(p) {
     link: p.link ? (parseLink(p.link)?.url || '') : '',
     note: String(p.note || ''),
     needsPlace: Boolean(p.needsPlace),
+    folderId: String(p.folderId || ''),
     createdAt: Number(p.createdAt) || 0,
     updatedAt: Number(p.updatedAt) || 0,
   };
 }
 
 export const normalizePlaces = (list) => (Array.isArray(list) ? list.map(normalizePlace).filter(Boolean) : []);
+
+/* ---------- Folders ---------- */
+
+export const FOLDER_NAME_MAX = 60;
+export const isFolder = (item) => item?.kind === 'folder';
+
+/** A folder, or null if it has no name. */
+export function normalizeFolder(f) {
+  if (!f || typeof f !== 'object') return null;
+  const name = String(f.name || '').replace(/\s+/g, ' ').trim().slice(0, FOLDER_NAME_MAX);
+  if (!name) return null;
+  return { id: f.id || newId(), kind: 'folder', name, createdAt: Number(f.createdAt) || 0, updatedAt: Number(f.updatedAt) || 0 };
+}
+
+export function makeFolder(name) {
+  const now = Date.now();
+  return normalizeFolder({ id: newId(), name, createdAt: now, updatedAt: now });
+}
+
+/** Everything stored in the table (places and folders), repaired; junk is dropped. */
+export const normalizeItems = (list) => (Array.isArray(list) ? list.map((x) => (isFolder(x) ? normalizeFolder(x) : normalizePlace(x))).filter(Boolean) : []);
+
+/** The stored items split into { places, folders } (folders A–Z). */
+export function splitItems(items) {
+  const places = [], folders = [];
+  for (const it of items) (isFolder(it) ? folders : places).push(it);
+  folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  return { places, folders };
+}
+
+/** Is there already a folder with this name (ignoring case and spacing)? `exceptId` skips the one being renamed. */
+export function folderNameTaken(folders, name, exceptId = '') {
+  const key = String(name).replace(/\s+/g, ' ').trim().toLowerCase();
+  return folders.some((f) => f.id !== exceptId && f.name.toLowerCase() === key);
+}
+
+/** The folder a place is in, or undefined (also when its folder has since been deleted). */
+export const folderOf = (place, folders) => (place.folderId ? folders.find((f) => f.id === place.folderId) : undefined);
+
+/** Places in a folder; folderId '' means "not in any folder" (including places whose folder is gone). */
+export function placesInFolder(places, folders, folderId) {
+  if (folderId) return places.filter((p) => p.folderId === folderId);
+  return places.filter((p) => !folderOf(p, folders));
+}

@@ -6,12 +6,18 @@ import { useCallback, useEffect, useState } from 'react';
  *   "#/trip/<id>"            a trip
  *   "#/inspiration"          saved places, all countries
  *   "#/inspiration/<key>"    saved places in one country (key: ISO code like "jp", or a typed country name)
+ *   "#/inspiration/folder/<id>"  saved places in one folder
  */
 export function parseHash(hash) {
+  const folder = (hash || '').match(/^#\/inspiration\/folder\/(.+)$/);
+  if (folder) {
+    try { return { view: 'inspiration', country: '', folder: decodeURIComponent(folder[1]) }; }
+    catch { return { view: 'inspiration', country: '', folder: '' }; }
+  }
   const insp = (hash || '').match(/^#\/inspiration(?:\/(.+))?$/);
   if (insp) {
-    try { return { view: 'inspiration', country: insp[1] ? decodeURIComponent(insp[1]) : '' }; }
-    catch { return { view: 'inspiration', country: '' }; }
+    try { return { view: 'inspiration', country: insp[1] ? decodeURIComponent(insp[1]) : '', folder: '' }; }
+    catch { return { view: 'inspiration', country: '', folder: '' }; }
   }
   const m = (hash || '').match(/^#\/trip\/(.+)$/);
   if (!m) return { view: 'home' };
@@ -23,6 +29,7 @@ export function parseHash(hash) {
 }
 
 export const tripHref = (tripId) => '#/trip/' + encodeURIComponent(tripId);
+export const folderHref = (folderId) => '#/inspiration/folder/' + encodeURIComponent(folderId);
 export const inspirationHref = (countryKey = '') => '#/inspiration' + (countryKey ? '/' + encodeURIComponent(countryKey) : '');
 
 export function useHashRoute() {

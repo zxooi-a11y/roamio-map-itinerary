@@ -8,11 +8,11 @@ import { guessCategory } from '../../lib/categories.js';
 import { countryName, flagEmoji, parseLink } from '../../lib/inspiration.js';
 import { extractUrl } from '../../lib/shareIntake.js';
 
-const EMPTY = { link: '', spot: null, country: '', countryCode: '', note: '' };
+const EMPTY = { link: '', spot: null, country: '', countryCode: '', note: '', folderId: '' };
 
 function fromPlace(p) {
   return {
-    link: p.link, note: p.note, country: p.countryCode ? countryName(p) : p.country, countryCode: p.countryCode,
+    link: p.link, note: p.note, folderId: p.folderId, country: p.countryCode ? countryName(p) : p.country, countryCode: p.countryCode,
     // a link saved without a place starts with no place picked, ready to search for it
     spot: p.needsPlace ? null : { name: p.name, address: p.address, city: p.city, lat: p.lat, lng: p.lng, cat: p.cat },
   };
@@ -25,13 +25,15 @@ function fromPlace(p) {
  *   initialLink    a link to start with (arrived from Instagram's share menu)
  *   countryHint    { key, name, code } of the country page this was opened from (pre-fills, and limits the search)
  *   countries      [{ name, code }] already used, offered as suggestions when typing a country
+ *   folders        the folders to choose from (the picker is hidden when there are none)
+ *   defaultFolderId  the folder a new place starts in (the folder page it was opened from)
  *   onSave(fields, { another })  another = keep the dialog open for the next place
  */
-export function PlaceDialog({ place, initialLink = '', countryHint, countries, onSave, onClose }) {
+export function PlaceDialog({ place, initialLink = '', countryHint, countries, folders = [], defaultFolderId = '', onSave, onClose }) {
   const editing = Boolean(place);
   const toast = useToast();
   const initial = editing ? fromPlace(place)
-    : { ...EMPTY, link: initialLink, country: countryHint?.name || '', countryCode: countryHint?.code || '' };
+    : { ...EMPTY, link: initialLink, folderId: defaultFolderId, country: countryHint?.name || '', countryCode: countryHint?.code || '' };
   const [form, setForm] = useState(initial);
   const [onlyHere, setOnlyHere] = useState(Boolean(countryHint?.code) && !editing);
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -86,10 +88,11 @@ export function PlaceDialog({ place, initialLink = '', countryHint, countries, o
       link: link?.url || '',
       note: form.note.trim(),
       needsPlace: linkOnly,
+      folderId: folders.some((f) => f.id === form.folderId) ? form.folderId : '',
     }, { another });
     if (another) {
-      // keep the country for the next one; clear the rest
-      setForm({ ...EMPTY, country: form.country, countryCode: form.countryCode });
+      // keep the country and folder for the next one; clear the rest
+      setForm({ ...EMPTY, country: form.country, countryCode: form.countryCode, folderId: form.folderId });
       search.reset();
     }
   };
@@ -152,6 +155,17 @@ export function PlaceDialog({ place, initialLink = '', countryHint, countries, o
             value={form.country} onChange={(e) => changeCountry(e.target.value)} />
           <datalist id="pl-countries">{countries.map((c) => <option key={c.code || c.name} value={c.name} />)}</datalist>
         </div>
+
+        {folders.length > 0 && (
+          <div className="wide">
+            <label className="ad-lbl" htmlFor="pl-folder">Folder (optional)</label>
+            <select className="ad-in" id="pl-folder" value={folders.some((f) => f.id === form.folderId) ? form.folderId : ''}
+              onChange={(e) => set({ folderId: e.target.value })}>
+              <option value="">No folder</option>
+              {folders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="wide">
           <label className="ad-lbl" htmlFor="pl-note">Note (optional)</label>

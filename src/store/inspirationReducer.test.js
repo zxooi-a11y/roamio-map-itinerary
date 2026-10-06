@@ -21,3 +21,34 @@ test('add puts the newest first; update repairs and bumps updatedAt; remove; loa
   assert.deepEqual(inspirationReducer(s, { type: 'load', items: [] }), []);
   assert.throws(() => inspirationReducer(s, { type: 'nope' }));
 });
+
+import { makeFolder, splitItems } from '../lib/inspiration.js';
+
+test('folders: add, rename, move a place in and out, and delete without deleting the places', () => {
+  const f = makeFolder('Japan'), g = makeFolder('Bali');
+  const a = makePlace({ name: 'Ichiran' }), b = makePlace({ name: 'teamLab' }), c = makePlace({ name: 'Uluwatu' });
+  let s = [a, b, c];
+  s = inspirationReducer(s, { type: 'folder/add', folder: f });
+  s = inspirationReducer(s, { type: 'folder/add', folder: g });
+  assert.equal(splitItems(s).folders.length, 2);
+
+  s = inspirationReducer(s, { type: 'place/update', id: a.id, patch: { folderId: f.id } });
+  s = inspirationReducer(s, { type: 'place/update', id: b.id, patch: { folderId: f.id } });
+  s = inspirationReducer(s, { type: 'place/update', id: c.id, patch: { folderId: g.id } });
+  assert.deepEqual(splitItems(s).places.filter((p) => p.folderId === f.id).map((p) => p.name), ['Ichiran', 'teamLab']);
+
+  s = inspirationReducer(s, { type: 'folder/rename', id: f.id, name: '  Japan 2027 ' });
+  assert.equal(s.find((x) => x.id === f.id).name, 'Japan 2027');
+  assert.equal(s.find((x) => x.id === a.id).folderId, f.id);   // renaming doesn't touch its places
+
+  const before = s;
+  s = inspirationReducer(s, { type: 'folder/remove', id: f.id });
+  const { places, folders } = splitItems(s);
+  assert.deepEqual(folders.map((x) => x.name), ['Bali']);
+  assert.equal(places.length, 3);                               // no place was deleted
+  assert.deepEqual(places.map((p) => p.folderId), ['', '', g.id]);
+  assert.equal(s.find((x) => x.id === c.id), before.find((x) => x.id === c.id)); // an unrelated place keeps its identity
+
+  // place/update can't be pointed at a folder by mistake
+  assert.equal(inspirationReducer(s, { type: 'place/update', id: g.id, patch: { name: 'x' } }).find((x) => x.id === g.id).name, 'Bali');
+});

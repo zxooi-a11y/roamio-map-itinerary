@@ -86,3 +86,43 @@ test('place search results now carry city and ISO country code', () => {
   const old = parseResult({ name: 'X', display_name: 'X, Lisbon, Portugal', lat: '1', lon: '2' });
   assert.deepEqual([old.country, old.countryCode, old.city], ['Portugal', '', '']);
 });
+
+/* ---------- folders ---------- */
+import { folderNameTaken, folderOf, isFolder, makeFolder, normalizeFolder, normalizeItems, placesInFolder, splitItems } from './inspiration.js';
+
+test('folders are normalised: trimmed, collapsed spaces, capped, nameless ones dropped', () => {
+  assert.equal(normalizeFolder({ name: '   ' }), null);
+  assert.equal(normalizeFolder(null), null);
+  const f = makeFolder('  Tokyo   cafés ');
+  assert.deepEqual([f.name, f.kind, isFolder(f), f.createdAt > 0], ['Tokyo cafés', 'folder', true, true]);
+  assert.equal(makeFolder('x'.repeat(200)).name.length, 60);
+});
+
+test('stored items split into places and folders (folders A–Z); old places without a kind are places', () => {
+  const stored = [{ id: 'p1', name: 'Ichiran' }, { id: 'f2', kind: 'folder', name: 'tokyo' }, { id: 'f1', kind: 'folder', name: 'Bali' }, { id: 'bad', kind: 'folder', name: '' }, null, { id: 'p2', name: 'teamLab', folderId: 'f2' }];
+  const items = normalizeItems(stored);
+  assert.equal(items.length, 4);
+  const { places, folders } = splitItems(items);
+  assert.deepEqual(places.map((p) => p.id), ['p1', 'p2']);
+  assert.deepEqual(folders.map((f) => f.name), ['Bali', 'tokyo']);
+  assert.equal(places[0].folderId, '');       // old places have no folder
+  assert.equal(places[1].folderId, 'f2');
+});
+
+test('folder lookups: a place in a deleted folder counts as unfiled', () => {
+  const folders = [makeFolder('Japan')];
+  const a = normalizePlace({ id: 'a', name: 'A', folderId: folders[0].id });
+  const b = normalizePlace({ id: 'b', name: 'B' });
+  const orphan = normalizePlace({ id: 'c', name: 'C', folderId: 'gone' });
+  assert.equal(folderOf(a, folders), folders[0]);
+  assert.equal(folderOf(orphan, folders), undefined);
+  assert.deepEqual(placesInFolder([a, b, orphan], folders, folders[0].id).map((p) => p.id), ['a']);
+  assert.deepEqual(placesInFolder([a, b, orphan], folders, '').map((p) => p.id), ['b', 'c']);
+});
+
+test('duplicate folder names are caught regardless of case and spacing, but renaming to itself is fine', () => {
+  const f = makeFolder('Bali trip');
+  assert.equal(folderNameTaken([f], '  bali   TRIP '), true);
+  assert.equal(folderNameTaken([f], 'Bali'), false);
+  assert.equal(folderNameTaken([f], 'bali trip', f.id), false);
+});
