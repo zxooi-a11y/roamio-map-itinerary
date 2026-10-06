@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { PlaceSearch } from '../../components/PlaceSearch.jsx';
 import { Sheet } from '../../components/Sheet.jsx';
-import { useToast } from '../../components/Toast.jsx';
 import { usePlaceSearch } from '../../hooks/usePlaceSearch.js';
 import { guessCategory } from '../../lib/categories.js';
 import { countryName, flagEmoji, FOLDER_NAME_MAX, makeFolder, parseLink } from '../../lib/inspiration.js';
-import { extractUrl } from '../../lib/shareIntake.js';
 
 const NEW = '__new__';
 const EMPTY = { link: '', spot: null, country: '', countryCode: '', note: '', folderId: '', newFolder: '' };
@@ -31,7 +29,6 @@ function fromPlace(p) {
  */
 export function PlaceDialog({ place, initialLink = '', countryHint, folders = [], defaultFolderId = '', onSave, onClose }) {
   const editing = Boolean(place);
-  const toast = useToast();
   const initial = editing ? fromPlace(place)
     : { ...EMPTY, link: initialLink, folderId: defaultFolderId, country: countryHint?.name || '', countryCode: countryHint?.code || '' };
   const [form, setForm] = useState(initial);
@@ -46,17 +43,6 @@ export function PlaceDialog({ place, initialLink = '', countryHint, folders = []
 
   const link = parseLink(form.link);
   const linkBad = form.link.trim() !== '' && !link;
-  const canPaste = Boolean(navigator.clipboard?.readText);
-
-  const paste = async () => {
-    try {
-      const found = parseLink(extractUrl(await navigator.clipboard.readText()));
-      if (found) set({ link: found.url });
-      else toast('No link found on the clipboard. Copy the post link in Instagram first.');
-    } catch {
-      toast("Couldn't read the clipboard. Paste into the box instead.");
-    }
-  };
 
   const pick = (r) => {
     set({
@@ -111,7 +97,6 @@ export function PlaceDialog({ place, initialLink = '', countryHint, folders = []
           <div className="pl-link-row">
             <input className="ad-in" id="pl-link" type="url" inputMode="url" autoComplete="off" autoFocus={!editing && !initialLink}
               placeholder="Paste the post or reel link" value={form.link} onChange={(e) => set({ link: e.target.value })} />
-            {canPaste && <button className="btn-plain pl-paste" type="button" onClick={paste}>Paste</button>}
           </div>
           <div className={'pl-link-status' + (linkBad ? ' is-bad' : '')} role="status">
             {linkBad ? "That doesn't look like a link." : link ? <><Icon name={link.kind === 'instagram' ? 'instagram' : 'link'} />{link.label}</> : ''}
