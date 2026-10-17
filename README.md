@@ -50,6 +50,8 @@ When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of 
 
 **Into a trip you already have:** the *Import places from a file* button at the top of the trip page takes the same files plus a From and To date (they start as the trip's dates). The places are spread evenly over those days in the order of the file; a place with a date or day number in the file goes on that day (clamped into the range), and days outside the trip's dates are added. Existing stops stay. Code: `src/lib/import/addToTrip.js`, `src/features/trip/ImportPlacesDialog.jsx`.
 
+**Group on the map** (the other button in that dialog) shows every place in the file on a map instead. Draw a loop around the places for one day (*Draw*; switch to *Move map* to pan and zoom), then pick which day of the range they're for and give the day a name. Repeat for each day; a place lassoed again moves to the new day, and the same day can be lassoed more than once. Nothing is added until **Submit**: each day's places are then put in visiting order, each next place being the closest one left (starting near where the day already ends if it has stops, otherwise from whichever start gives the shortest walk), the day names are set, and the times follow the travel as usual. Places left out of every loop aren't added (you're asked first). Code: `src/features/trip/ImportPlanner.jsx`, `src/lib/import/grouping.js`.
+
 A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
 
 ## Map style

@@ -50,3 +50,12 @@ test('an undated trip imported with dates takes those dates', () => {
   const next = tripsReducer(trip([d('a', '')]), { type: 'trip/importPlaces', tripId: 't', start: '2026-07-01', end: '2026-07-02', items: [{ offset: 0, stop: stop('x') }, { offset: 1, stop: stop('y') }] });
   assert.deepEqual(next[0].days.map((x) => [x.date, x.stops.map((s) => s.id)]), [['2026-07-01', ['x']], ['2026-07-02', ['y']]]);
 });
+
+test('importing can name the days it fills', () => {
+  const stop = (id) => ({ id, name: id, lat: 0, lng: 0, time: '' });
+  const next = tripsReducer(trip([d('a', '2026-07-01'), d('b', '2026-07-02')]), {
+    type: 'trip/importPlaces', tripId: 't', start: '2026-07-01', end: '2026-07-02',
+    items: [{ offset: 1, stop: stop('x') }], titles: { 1: ' Montmartre ', 0: '' },
+  });
+  assert.deepEqual(next[0].days.map((x) => x.title || ''), ['', 'Montmartre']);
+});

@@ -45,7 +45,7 @@ export function tripsReducer(trips, action) {
         return plan && plan.changed ? touch({ ...t, days: plan.days }) : t;
       });
 
-    case 'trip/importPlaces': // { start, end, items: [{ offset, stop }] } stops go on the days of start..end (extending the trip to cover them)
+    case 'trip/importPlaces': // { start, end, items: [{ offset, stop }], titles?: { [offset]: name } } stops go on the days of start..end (extending the trip to cover them)
       return updateTrip(trips, tripId, (t) => {
         let days = t.days;
         if (action.start) {
@@ -60,13 +60,19 @@ export function tripsReducer(trips, action) {
           days = [...days, ...Array.from({ length: Math.max(0, need - days.length) }, () => newDay())];
         }
         const dates = action.start ? effectiveDates(days) : null;
+        const dayOf = (offset) => {
+          const idx = dates ? dates.indexOf(addDays(action.start, offset)) : offset;
+          return idx < 0 ? days.length - 1 : idx;
+        };
         const byDay = new Map();
-        for (const { offset, stop } of action.items) {
-          let idx = dates ? dates.indexOf(addDays(action.start, offset)) : offset;
-          if (idx < 0) idx = days.length - 1;
-          byDay.set(idx, [...(byDay.get(idx) || []), stop]);
-        }
-        return touch({ ...t, days: days.map((d, i) => (byDay.has(i) ? needRetime({ ...d, stops: [...d.stops, ...byDay.get(i)] }) : d)) });
+        for (const { offset, stop } of action.items) byDay.set(dayOf(offset), [...(byDay.get(dayOf(offset)) || []), stop]);
+        const titles = new Map(Object.entries(action.titles || {}).filter(([, v]) => v && v.trim()).map(([k, v]) => [dayOf(+k), v.trim()]));
+        return touch({ ...t, days: days.map((d, i) => {
+          let out = d;
+          if (titles.has(i)) out = { ...out, title: titles.get(i) };
+          if (byDay.has(i)) out = needRetime({ ...out, stops: [...out.stops, ...byDay.get(i)] });
+          return out;
+        }) });
       });
 
     case 'day/add':
