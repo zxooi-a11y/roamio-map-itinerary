@@ -27,11 +27,12 @@ export function haversine(a, b) {
 }
 
 // Fastest believable speeds (m/s) for the straight-line floor, and typical ones (with a detour factor) for estimates.
-const FLOOR_SPEED = { foot: 2.0, bike: 8, transit: 45, car: 27 }; // ~7 km/h, ~29 km/h, ~97 km/h (as the crow flies)
+const FLOOR_SPEED = { foot: 2.0, bike: 8, transit: 45, train: 60, car: 27 }; // ~7 km/h, ~29 km/h, ~97 km/h (as the crow flies)
 const TYPICAL = {
   foot: () => ({ speed: 1.35, detour: 1.3 }), // ~4.9 km/h
   bike: () => ({ speed: 4.2, detour: 1.3 }), // ~15 km/h
   car: (m) => ({ speed: m < 5000 ? 8 : m < 60000 ? 14 : 20, detour: 1.3 }), // ~29 / 50 / 72 km/h on the road
+  train: (m) => ({ speed: m < 40000 ? 14 : m < 120000 ? 24 : 32, detour: 1.25, wait: 900 }), // ~50 / 86 / 115 km/h along the line; ~15 min to get to and board
   transit: (m) => ({ speed: m < 10000 ? 7 : m < 100000 ? 14 : 25, detour: 1.3, wait: 600 }), // bus / tube, then trains; plus ~10 min of waiting
 };
 
@@ -48,6 +49,8 @@ export function estimateSeconds(a, b, mode) {
 /** Seconds for a leg: the routed time if there is one, never less than the floor; otherwise an estimate. */
 export function legSeconds(a, b, mode, route) {
   const floor = minSeconds(a, b, mode);
+  // trains follow no road: straight-line distance, a rail detour, boarding time and typical line speeds
+  if (mode === 'train') return Math.max(estimateSeconds(a, b, 'train'), floor);
   // public transport has no routing service: its time is modelled from the road distance of the same journey
   if (mode === 'transit') {
     const crow = haversine(a, b);

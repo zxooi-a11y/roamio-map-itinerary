@@ -1,3 +1,5 @@
+import { haversine } from './timing.js';
+
 // Road / path routes for each leg between two stops of a day, from free public routing services.
 //
 // Results are cached by (mode + coordinates), so editing a stop naturally produces a
@@ -95,6 +97,11 @@ export function dayLegs(day) {
 export function requestLeg({ key, mode, from, to }) {
   if (!key || cache.has(key)) return;
   const coords = [from, to].map((p) => ({ lat: p.lat, lng: p.lng }));
+  if (mode === 'train') { // no routing service for rails: a straight line between the stations
+    cache.set(key, { status: 'ok', pts: coords.map((c) => [c.lat, c.lng]), dist: haversine(from, to) * 1.2, dur: 0, approx: true });
+    emit();
+    return;
+  }
   cache.set(key, { status: 'loading' });
   emit();
 

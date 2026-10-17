@@ -63,8 +63,8 @@ function LegRow({ leg, stop }) {
   const { route, seconds, mode } = leg;
   const loading = !route || route.status === 'loading';
   // a route whose time had to be raised a lot (the service answered nonsense for this distance) is shown as an estimate
-  const unreliable = !loading && route.status === 'ok' && (route.dist < haversine(leg.from, leg.to) * 0.9 || (mode !== 'transit' && seconds > route.dur * 1.5));
-  const estimated = !loading && (route.status !== 'ok' || route.approx || unreliable || mode === 'transit');
+  const unreliable = !loading && route.status === 'ok' && (mode !== 'train' && route.dist < haversine(leg.from, leg.to) * 0.9 || (mode !== 'transit' && mode !== 'train' && seconds > route.dur * 1.5));
+  const estimated = !loading && (route.status !== 'ok' || route.approx || unreliable || mode === 'transit' || mode === 'train');
   return (
     <div className="leg" data-leg={stop.id}>
       <span className="leg-info">

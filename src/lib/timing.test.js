@@ -62,3 +62,9 @@ test('public transport is modelled from the road distance of the journey, never 
   const a = { lat: 51.5, lng: -0.1 }, b = { lat: 51.51, lng: -0.1 };
   assert.ok(legSeconds(a, b, 'transit', { status: 'ok', dist: 1100 }) >= 600);
 });
+
+test('a train between cities takes about as long as the real one', () => {
+  const t = legSeconds(BRISTOL, LONDON, 'train', { status: 'ok', dur: 0 });
+  assert.ok(t >= 90 * 60 && t <= 2.75 * 3600, `train ${t / 60} min`);
+  assert.ok(t < legSeconds(BRISTOL, LONDON, 'foot'));
+});

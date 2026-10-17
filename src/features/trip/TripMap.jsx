@@ -101,7 +101,7 @@ export function TripMap({ trip, dayData, focusDayId, fitToken, onMoveStop, apiRe
       (dayData[di]?.legs || []).forEach((leg) => {
         const r = leg.route;
         if (r?.status === 'ok') {
-          const dash = leg.mode === 'car' ? undefined : leg.mode === 'transit' ? '12 7' : '2 8';
+          const dash = leg.mode === 'car' ? undefined : leg.mode === 'transit' ? '12 7' : leg.mode === 'train' ? '4 10 12 10' : '2 8';
           const line = { lineCap: 'round', lineJoin: 'round', smoothFactor: 0 };
           L.polyline(r.pts, { ...line, color: '#fff', weight: 8, opacity: dim ? 0.15 : 0.7 }).addTo(layer);
           L.polyline(r.pts, { ...line, color, weight: 5, opacity: dim ? 0.25 : 0.9, dashArray: dash }).addTo(layer);

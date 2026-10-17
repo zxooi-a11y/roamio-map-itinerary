@@ -5,14 +5,15 @@ import { newId } from './ids.js';
  * Data model (saved to localStorage as { trips: Trip[] })
  *
  * Trip  { id, title, place, center: {lat,lng}|null, photo?, photoTried?, createdAt, updatedAt, days: Day[] }
- * Day   { id, title, date: "YYYY-MM-DD"|"", mode: "foot"|"transit"|"car" (default for legs), collapsed?, img?: dataURL, stops: Stop[] }
- * Stop  { id, name, time: "HH:MM"|"", cat, note, lat, lng, travel?: "foot"|"transit"|"car" (how to get here from the previous stop; else the day's mode), pin?: true (its time was typed, so it is kept unless impossible) }
+ * Day   { id, title, date: "YYYY-MM-DD"|"", mode: "foot"|"transit"|"train"|"car" (default for legs), collapsed?, img?: dataURL, stops: Stop[] }
+ * Stop  { id, name, time: "HH:MM"|"", cat, note, lat, lng, travel?: "foot"|"transit"|"train"|"car" (how to get here from the previous stop; else the day's mode), pin?: true (its time was typed, so it is kept unless impossible) }
  */
 
 export const MAX_TRIP_DAYS = 60;
 export const TRAVEL_MODES = [
   { key: 'foot', label: 'Walking' },
   { key: 'transit', label: 'Public transport' },
+  { key: 'train', label: 'Train' },
   { key: 'car', label: 'Driving' },
 ];
 

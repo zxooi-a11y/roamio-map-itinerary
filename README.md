@@ -20,12 +20,12 @@ The **Inspiration** page (home page → Inspiration, or `#/inspiration`) keeps p
 
 ## Travel between stops, and times that follow it
 
-Each stop after the first has a circle beside its category with how you get there: **walking, public transport or driving**. Between stops the time and distance are shown. Each leg is routed on its own and drawn on the map in its mode (solid for driving, dashed for public transport, dotted for walking).
+Each stop after the first has a circle beside its category with how you get there: **walking, public transport, train or driving**. Between stops the time and distance are shown. Each leg is routed on its own and drawn on the map in its mode (solid for driving, dashed for public transport, long dashes for trains, dotted for walking).
 
 - **Times follow the travel.** The first stop's time is when the day starts. Every later stop's time is the previous stop's time plus the travel time between them, rounded up to 5 minutes (07:38 + 2 h 10 min = 09:50). They update when you reorder, change a leg's mode, add or remove a stop, or edit the start time, and when a trip is opened. With no time on the first stop, no times are filled in.
 - **Reordering keeps the start.** The day's times are handed out again in the new order, so the stop you move to the top takes the start time and 7am never ends up after 8pm.
 - **A time you type is kept** if there's enough time to get there (say, dinner at 8pm); the stops after it follow from it. If it's too soon it's moved later. Clear the time to let it follow the travel again.
-- **Travel times are never nonsense.** A routed time is never lower than the straight-line distance allows at that mode's speed, and where no route can be found an estimate is used and marked "(est.)", so Bristol to London can't come out as 5 minutes. Free routing services have no live traffic. Public transport has no free routing service, so its time is modelled from the road distance (waiting plus bus / train speeds) and is always an estimate.
+- **Travel times are never nonsense.** A routed time is never lower than the straight-line distance allows at that mode's speed, and where no route can be found an estimate is used and marked "(est.)", so Bristol to London can't come out as 5 minutes. Free routing services have no live traffic. Public transport and trains have no free routing service, so their times are modelled (public transport from the road distance plus waiting; a train from the straight-line distance with a rail detour, boarding time and typical line speeds, about 2 hours for Bristol to London) and are always estimates. A train is drawn as a straight line between the two stops.
 - Rules and tests: `src/lib/timing.js`, `src/store/tripsReducer.js`; routing per leg: `src/lib/routing.js`.
 
 ## Changing a trip's dates
