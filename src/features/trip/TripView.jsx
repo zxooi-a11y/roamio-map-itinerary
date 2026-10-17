@@ -9,6 +9,7 @@ import { describePlan, planDates } from '../../lib/tripDates.js';
 import { summaryLine } from '../../lib/trips.js';
 import { useTrips } from '../../store/TripsProvider.jsx';
 import { AddStopDialog } from './AddStopDialog.jsx';
+import { ImportPlacesDialog } from './ImportPlacesDialog.jsx';
 import { DayCard } from './DayCard.jsx';
 import { DayFilters } from './DayFilters.jsx';
 import { TripDates } from './TripDates.jsx';
@@ -23,6 +24,7 @@ export function TripView({ trip }) {
   const tripId = trip.id;
   const [focusDayId, setFocusDayId] = useState(null);
   const [fitNonce, setFitNonce] = useState(0);
+  const [importing, setImporting] = useState(false);
   const [adding, setAdding] = useState(null); // { day, index } while the Add stop pop-up is open
   const mapApi = useRef(null);
   const stickyRef = useRef(null);
@@ -116,6 +118,9 @@ export function TripView({ trip }) {
           onChange={(e) => dispatch({ type: 'trip/update', tripId, patch: { title: e.target.value } })} />
         <p className="subtitle">{summaryLine(trip, { withDates: false })}</p>
         <TripDates trip={trip} onChange={changeDates} showHint={!compact} />
+        <button className="btn-plain trip-import" type="button" onClick={() => setImporting(true)}>
+          <Icon name="upload" />Import places from a file
+        </button>
       </header>
 
       <div className="stickytop" ref={stickyRef}>
@@ -134,6 +139,10 @@ export function TripView({ trip }) {
         <button className="btn ghost" type="button" onClick={() => dispatch({ type: 'day/add', tripId })}>+ Add a day</button>
       </main>
 
+      {importing && (
+        <ImportPlacesDialog trip={trip} onClose={() => setImporting(false)}
+          onImport={(payload) => { dispatch({ type: 'trip/importPlaces', tripId, ...payload }); setImporting(false); refit(); }} />
+      )}
       {adding && (
         <AddStopDialog day={adding.day} dayIndex={adding.index} map={mapApi.current}
           onClose={() => setAdding(null)} onAdd={addStop} />

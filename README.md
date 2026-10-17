@@ -48,6 +48,8 @@ When creating a trip you can upload a **CSV**, **XLSX** or **Markdown** file of 
 - If you don't enter trip dates, dates found in the file are used. Day numbers become days of the trip.
 - Limits: 5 MB, 200 locations. Old `.xls` files aren't supported yet; save them as `.xlsx` or `.csv`.
 
+**Into a trip you already have:** the *Import places from a file* button at the top of the trip page takes the same files plus a From and To date (they start as the trip's dates). The places are spread evenly over those days in the order of the file; a place with a date or day number in the file goes on that day (clamped into the range), and days outside the trip's dates are added. Existing stops stay. Code: `src/lib/import/addToTrip.js`, `src/features/trip/ImportPlacesDialog.jsx`.
+
 A sample file is at `public/sample-locations.csv`. The parsers live in `src/lib/import/`.
 
 ## Map style

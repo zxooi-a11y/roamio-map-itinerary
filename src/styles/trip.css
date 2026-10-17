@@ -140,3 +140,6 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 
 .tag.travel { color: var(--muted); border-color: var(--line); background: var(--card); }
 .tag.travel:hover { background: color-mix(in srgb, var(--c) 10%, var(--card)); }
+
+.trip-import { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 9px 14px; border-radius: 12px; }
+.trip-import .ico { width: 16px; height: 16px; }

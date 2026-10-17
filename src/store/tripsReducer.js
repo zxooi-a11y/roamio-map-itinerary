@@ -1,5 +1,5 @@
 import { addDays } from '../lib/dates.js';
-import { planDates } from '../lib/tripDates.js';
+import { dateRange, effectiveDates, planDates } from '../lib/tripDates.js';
 import { autoTimes, reassignTimes } from '../lib/timing.js';
 import { newDay } from '../lib/trips.js';
 
@@ -43,6 +43,30 @@ export function tripsReducer(trips, action) {
       return updateTrip(trips, tripId, (t) => {
         const plan = planDates(t, { start: action.start, end: action.end }, action.edited);
         return plan && plan.changed ? touch({ ...t, days: plan.days }) : t;
+      });
+
+    case 'trip/importPlaces': // { start, end, items: [{ offset, stop }] } stops go on the days of start..end (extending the trip to cover them)
+      return updateTrip(trips, tripId, (t) => {
+        let days = t.days;
+        if (action.start) {
+          const cur = dateRange(t);
+          const lo = cur && cur.start < action.start ? cur.start : action.start;
+          const hi = cur && cur.end > action.end ? cur.end : action.end;
+          const plan = planDates(t, { start: lo, end: hi }, 'start');
+          if (plan?.changed) days = plan.days;
+        } else {
+          // an undated trip imported without dates: offsets are day numbers, adding days when the file needs more
+          const need = Math.max(0, ...action.items.map((x) => x.offset + 1));
+          days = [...days, ...Array.from({ length: Math.max(0, need - days.length) }, () => newDay())];
+        }
+        const dates = action.start ? effectiveDates(days) : null;
+        const byDay = new Map();
+        for (const { offset, stop } of action.items) {
+          let idx = dates ? dates.indexOf(addDays(action.start, offset)) : offset;
+          if (idx < 0) idx = days.length - 1;
+          byDay.set(idx, [...(byDay.get(idx) || []), stop]);
+        }
+        return touch({ ...t, days: days.map((d, i) => (byDay.has(i) ? needRetime({ ...d, stops: [...d.stops, ...byDay.get(i)] }) : d)) });
       });
 
     case 'day/add':
