@@ -48,3 +48,27 @@ test('stop/update finds the stop in any day', () => {
   const next = tripsReducer(base(), { type: 'stop/update', tripId: 't', stopId: 'b1', patch: { cat: 'Park' } });
   assert.equal(next[0].days[1].stops[0].cat, 'Park');
 });
+
+test('moving a stop keeps the day\'s times in order and marks the day for a travel-time check', () => {
+  const trips = [{ id: 't', updatedAt: 0, days: [{ id: 'a', stops: [s('a1', { time: '07:00' }), s('a2', { time: '09:00' }), s('a3', { time: '20:00' })] }] }];
+  const next = tripsReducer(trips, { type: 'stop/move', tripId: 't', stopId: 'a3', toDayId: 'a', toIndex: 0 });
+  assert.deepEqual(next[0].days[0].stops.map((x) => [x.id, x.time]), [['a3', '07:00'], ['a1', '09:00'], ['a2', '20:00']]);
+  assert.equal(next[0].days[0].retime, true);
+});
+
+test('a leg mode is kept on its stop, and the day mode replaces them all', () => {
+  const trips = [{ id: 't', updatedAt: 0, days: [{ id: 'a', mode: 'foot', stops: [s('a1'), s('a2'), s('a3')] }] }];
+  const one = tripsReducer(trips, { type: 'stop/setTravel', tripId: 't', stopId: 'a2', mode: 'car' });
+  assert.deepEqual(one[0].days[0].stops.map((x) => x.travel), [undefined, 'car', undefined]);
+  assert.equal(one[0].days[0].retime, true);
+  const all = tripsReducer(one, { type: 'day/setMode', tripId: 't', dayId: 'a', mode: 'bike' });
+  assert.deepEqual(all[0].days[0].stops.map((x) => x.travel), [undefined, undefined, undefined]);
+  assert.equal(all[0].days[0].mode, 'bike');
+});
+
+test('day/retime pushes times later by the travel time and clears the to-do marker', () => {
+  const trips = [{ id: 't', updatedAt: 0, days: [{ id: 'a', retime: true, stops: [s('a1', { time: '07:00' }), s('a2', { time: '07:05' })] }] }];
+  const next = tripsReducer(trips, { type: 'day/retime', tripId: 't', dayId: 'a', seconds: [0, 6600] });
+  assert.equal(next[0].days[0].stops[1].time, '08:50');
+  assert.equal('retime' in next[0].days[0], false);
+});

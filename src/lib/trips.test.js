@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { addDays, daysBetween, fmtRange, plural } from './dates.js';
 import { guessCategory, categoryOf } from './categories.js';
 import { MAX_TRIP_DAYS, badgeText, liveDayIndex, makeTrip, nextTrip, normalizeStore, sortTrips, tripPhase, tripRange } from './trips.js';
-import { decodePolyline6, formatDistance, formatDuration, routeKey, routeSummary } from './routing.js';
+import { decodePolyline6, formatDistance, formatDuration, dayLegs, legKey, routeSummary } from './routing.js';
 import { parseResult } from './geocode.js';
 
 const TODAY = '2026-06-15';
@@ -75,10 +75,14 @@ test('routing helpers', () => {
   assert.equal(formatDistance(2400), '2.4 km');
   assert.equal(formatDuration(30), '1 min');
   assert.equal(formatDuration(3900), '1 h 5 min');
-  assert.equal(routeKey({ stops: [{ lat: 1, lng: 2 }] }), null);
-  assert.equal(routeKey({ mode: 'car', stops: [{ lat: 1, lng: 2 }, { lat: 3, lng: 4 }] }), 'car|2.00000,1.00000;4.00000,3.00000');
-  assert.equal(routeSummary({ status: 'ok', dist: 1200, dur: 600, approx: true }), '1.2 km · 10 min (by road)');
-  assert.equal(routeSummary(undefined), '');
+  assert.deepEqual(dayLegs({ stops: [{ lat: 1, lng: 2 }] }), []);
+  const legs = dayLegs({ mode: 'foot', stops: [{ lat: 1, lng: 2 }, { lat: 3, lng: 4, travel: 'car' }, { lat: 5, lng: 6 }] });
+  assert.deepEqual(legs.map((l) => l.key), ['car|2.00000,1.00000;4.00000,3.00000', 'foot|4.00000,3.00000;6.00000,5.00000']);
+  assert.equal(legKey('bike', { lat: 1, lng: 2 }, { lat: 3, lng: 4 }), 'bike|2.00000,1.00000;4.00000,3.00000');
+  assert.equal(routeSummary([{ status: 'ok', dist: 1200 }, { status: 'ok', dist: 800 }], [600, 1200]), '2.0 km · 30 min');
+  assert.equal(routeSummary([{ status: 'ok', dist: 1200 }, { status: 'fail' }], [600, 1200]), '1.2 km · 30 min (1 estimated)');
+  assert.equal(routeSummary([{ status: 'loading' }], [60]), 'Finding routes…');
+  assert.equal(routeSummary([], []), '');
 });
 
 test('geocode result parsing', () => {

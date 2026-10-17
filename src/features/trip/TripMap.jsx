@@ -24,7 +24,7 @@ function popupContent(name) {
 }
 
 /**
- * The Leaflet map for a trip: numbered markers per day, road routes (or dotted
+ * The Leaflet map for a trip: numbered markers per day, a route per leg (or dotted
  * straight lines while they load), with days other than `focusDayId` dimmed.
  *
  * Leaflet manages its own DOM, so this component drives it imperatively from effects.
@@ -32,7 +32,7 @@ function popupContent(name) {
  * Parent gets an API through `apiRef`: flyTo(stop), getCenter(), getViewbox(), resize().
  * The view re-fits whenever `fitToken` changes.
  */
-export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef }) {
+export function TripMap({ trip, dayData, focusDayId, fitToken, onMoveStop, apiRef }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
@@ -76,7 +76,7 @@ export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef
   }, [basemap]);
 
   // Redraw markers and lines whenever the trip, the focus or a route changes.
-  const routeSig = routes.map((r) => r?.status || '').join(',');
+  const routeSig = dayData.map((d) => d.legs.map((l) => l.route?.status || '').join('.')).join(',');
   useEffect(() => {
     const layer = layerRef.current;
     layer.clearLayers();
@@ -97,17 +97,19 @@ export function TripMap({ trip, routes, focusDayId, fitToken, onMoveStop, apiRef
         markersRef.current.set(s.id, m);
       });
 
-      if (day.stops.length > 1) {
-        const r = routes[di];
+      // One line per leg, drawn in that leg's mode: solid for driving, dashed for cycling, dotted for walking
+      (dayData[di]?.legs || []).forEach((leg) => {
+        const r = leg.route;
         if (r?.status === 'ok') {
+          const dash = leg.mode === 'car' ? undefined : leg.mode === 'bike' ? '12 7' : '2 8';
           const line = { lineCap: 'round', lineJoin: 'round', smoothFactor: 0 };
           L.polyline(r.pts, { ...line, color: '#fff', weight: 8, opacity: dim ? 0.15 : 0.7 }).addTo(layer);
-          L.polyline(r.pts, { ...line, color, weight: 5, opacity: dim ? 0.25 : 0.9 }).addTo(layer);
+          L.polyline(r.pts, { ...line, color, weight: 5, opacity: dim ? 0.25 : 0.9, dashArray: dash }).addTo(layer);
         } else {
-          // While the road route loads (or if it can't be fetched): dotted straight line
-          L.polyline(day.stops.map((s) => [s.lat, s.lng]), { color, weight: 3, opacity: dim ? 0.2 : 0.6, dashArray: '2 8', lineCap: 'round' }).addTo(layer);
+          // While the route loads (or if it can't be fetched): faint straight line
+          L.polyline([[leg.from.lat, leg.from.lng], [leg.to.lat, leg.to.lng]], { color, weight: 3, opacity: dim ? 0.2 : 0.6, dashArray: '2 8', lineCap: 'round' }).addTo(layer);
         }
-      }
+      });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip.days, focusDayId, routeSig]);

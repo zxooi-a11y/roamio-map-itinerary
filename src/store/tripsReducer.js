@@ -1,5 +1,6 @@
 import { addDays } from '../lib/dates.js';
 import { planDates } from '../lib/tripDates.js';
+import { reassignTimes, retimeDay } from '../lib/timing.js';
 import { newDay } from '../lib/trips.js';
 
 /*
@@ -13,6 +14,9 @@ const touch = (trip) => ({ ...trip, updatedAt: Date.now() });
 function updateTrip(trips, tripId, fn) {
   return trips.map((t) => (t.id === tripId ? fn(t) : t));
 }
+// A day whose order, legs or stops changed needs its times checked against the travel times once the routes are known
+// (the UI does that and sends day/retime); `retime` is that to-do marker.
+const needRetime = (d) => ({ ...d, retime: true });
 function updateDay(trip, dayId, fn) {
   return { ...trip, days: trip.days.map((d) => (d.id === dayId ? fn(d) : d)) };
 }
@@ -56,8 +60,23 @@ export function tripsReducer(trips, action) {
     case 'day/setCollapsed': // UI state only
       return updateTrip(trips, tripId, (t) => updateDay(t, dayId, (d) => ({ ...d, collapsed: action.collapsed })));
 
+    case 'day/setMode': // { mode } every leg of the day uses this mode
+      return updateTrip(trips, tripId, (t) => touch(updateDay(t, dayId, (d) => needRetime({
+        ...d, mode: action.mode, stops: d.stops.map(({ travel, ...s }) => s) }))));
+
+    case 'stop/setTravel': // { mode } how to get to this stop from the one before
+      return updateTrip(trips, tripId, (t) => touch({ ...t, days: t.days.map((d) =>
+        (d.stops.some((s) => s.id === stopId) ? needRetime({ ...d, stops: d.stops.map((s) => (s.id === stopId ? { ...s, travel: action.mode } : s)) }) : d)) }));
+
+    case 'day/retime': // { seconds } travel time into each stop: push times later where there isn't enough
+      return updateTrip(trips, tripId, (t) => updateDay(t, dayId, (d) => {
+        const { retime, ...rest } = d;
+        const r = retimeDay(d.stops, action.seconds || []);
+        return r.changed ? { ...rest, stops: r.stops } : rest;
+      }));
+
     case 'stop/add': // { stop }
-      return updateTrip(trips, tripId, (t) => touch(updateDay(t, dayId, (d) => ({ ...d, stops: [...d.stops, action.stop] }))));
+      return updateTrip(trips, tripId, (t) => touch(updateDay(t, dayId, (d) => needRetime({ ...d, stops: [...d.stops, action.stop] }))));
 
     case 'stop/update': // { patch }
       return updateTrip(trips, tripId, (t) =>
@@ -65,7 +84,7 @@ export function tripsReducer(trips, action) {
 
     case 'stop/remove':
       return updateTrip(trips, tripId, (t) =>
-        touch(updateDay(t, dayId, (d) => ({ ...d, stops: d.stops.filter((s) => s.id !== stopId) }))));
+        touch(updateDay(t, dayId, (d) => needRetime({ ...d, stops: d.stops.filter((s) => s.id !== stopId) }))));
 
     case 'stop/move': // { toDayId, toIndex } index among the target day's stops *without* the moved stop
       return updateTrip(trips, tripId, (t) => {
@@ -74,7 +93,9 @@ export function tripsReducer(trips, action) {
         const days = t.days.map((d) => {
           const stops = d.stops.filter((s) => s.id !== stopId);
           if (d.id === action.toDayId) stops.splice(Math.max(0, Math.min(action.toIndex, stops.length)), 0, stop);
-          return stops.length === d.stops.length && d.id !== action.toDayId ? d : { ...d, stops };
+          if (stops.length === d.stops.length && d.id !== action.toDayId) return d;
+          // the day's timetable stays in order: times are handed out again in the new order
+          return needRetime({ ...d, stops: d.id === action.toDayId ? reassignTimes(stops) : stops });
         });
         return touch({ ...t, days });
       });

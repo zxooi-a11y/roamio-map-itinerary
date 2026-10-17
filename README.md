@@ -18,6 +18,15 @@ The **Inspiration** page (home page → Inspiration, or `#/inspiration`) keeps p
 - **Folders:** *New folder* (on the Inspiration page) makes a folder, e.g. "Food" or "Day trips", and opens it. On the main Inspiration page folders are big boxes, each with one cover picture: its picture is chosen from the folder's name, not its places: a folder named after a country or well-known city gets a photo of that place's best-known landmark (Malaysia → Petronas Towers, UK → Big Ben, Paris → Eiffel Tower), taken from the landmark's Wikipedia article. The list is in `src/lib/landmarks.js` (add your own there); other names fall back to a Wikipedia search for a famous landmark, then the article named after the folder (else a map of the places). The sources are in `src/lib/photos.js`; tap a box to open the folder's page with all its places and links. Each place card has a folder chip to move it (and the Save dialog has an optional Folder field; choose *+ New folder…* there to create one on the spot, named after the place's country by default); a folder's page (`#/inspiration/folder/<id>`) shows just its places, grouped by country, with *Rename* and *Delete folder*. Deleting a folder keeps its places and moves them back to *No folder*. Folder names are unique, ignoring case.
 - Stored in the `inspirations` table (folders too, so no extra setup) in Supabase. **One-time setup:** run `supabase/inspirations.sql` in the Supabase SQL Editor. Until then the page explains this and the rest of the app works as normal.
 
+## Travel between stops, and keeping times realistic
+
+Between every two stops of a day there's a leg with its own **walking / cycling / driving** buttons, the travel time and distance, and (when the stop before has a time) when you'd arrive. The mode buttons in the day's header set every leg at once. Each leg is routed on its own and drawn on the map in its mode (solid for driving, dashed for cycling, dotted for walking). A stop's time can be edited by tapping it.
+
+- **Reordering keeps the timetable in order.** The day's times are handed out again in the new order, so 7am can never come after 8pm.
+- **No leg takes less than it can.** If the times leave less time than the trip needs, the times are pushed later (to the next 5 minutes) once the routes are known; changing a leg's mode, removing or adding a stop does the same check. A time you type yourself is not changed; the leg shows "Too soon" with a *Fix times* button instead.
+- **Travel times are never nonsense.** A routed time is never lower than the straight-line distance allows at the mode's fastest speed, and where no route can be found an estimate is used and marked "(est.)", so Bristol to London can't come out as 5 minutes. Free routing services have no live traffic, so times are rough.
+- Rules and tests: `src/lib/timing.js`, `src/store/tripsReducer.js`; routing per leg: `src/lib/routing.js`.
+
 ## Changing a trip's dates
 
 The start and end date sit under the trip title on the itinerary page. Editing either one adds, removes or moves days to match:
@@ -80,6 +89,7 @@ src/
   lib/                     pure logic: no React, unit-tested
     trips.js               data model, trip phase/sorting/summary helpers, makeTrip, normalizeStore
     dates.js               "YYYY-MM-DD" helpers and formatting
+    timing.js              leg travel times, keeping a day's times in order and achievable (unit-tested)
     tripDates.js           what changing the start / end date does to a trip's days (unit-tested)
     categories.js          stop categories + guessing from OSM data / names
     routing.js             route providers, cache and subscription

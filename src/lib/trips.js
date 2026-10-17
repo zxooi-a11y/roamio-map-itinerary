@@ -6,7 +6,7 @@ import { newId } from './ids.js';
  *
  * Trip  { id, title, place, center: {lat,lng}|null, photo?, photoTried?, createdAt, updatedAt, days: Day[] }
  * Day   { id, title, date: "YYYY-MM-DD"|"", mode: "foot"|"bike"|"car", collapsed?, img?: dataURL, stops: Stop[] }
- * Stop  { id, name, time: "HH:MM"|"", cat, note, lat, lng }
+ * Stop  { id, name, time: "HH:MM"|"", cat, note, lat, lng, travel?: "foot"|"bike"|"car" (how to get here from the previous stop; else the day's mode) }
  */
 
 export const MAX_TRIP_DAYS = 60;
@@ -115,7 +115,7 @@ export function normalizeStore(raw) {
       center: t.center && isFinite(t.center.lat) && isFinite(t.center.lng) ? t.center : null,
       days: (Array.isArray(t.days) ? t.days : [])
         .filter((d) => d && typeof d === 'object')
-        .map((d) => ({
+        .map(({ retime, ...d }) => ({
           ...d,
           id: d.id || newId(),
           title: d.title || '',
@@ -123,7 +123,8 @@ export function normalizeStore(raw) {
           mode: TRAVEL_MODES.some((m) => m.key === d.mode) ? d.mode : 'foot',
           stops: (Array.isArray(d.stops) ? d.stops : [])
             .filter((s) => s && isFinite(s.lat) && isFinite(s.lng))
-            .map((s) => ({ ...s, id: s.id || newId(), name: s.name || 'Untitled stop', time: s.time || '', note: s.note || '' })),
+            .map((s) => ({ ...s, id: s.id || newId(), name: s.name || 'Untitled stop', time: s.time || '', note: s.note || '',
+              ...(TRAVEL_MODES.some((m) => m.key === s.travel) ? {} : { travel: undefined }) })),
         })),
     }));
   return { trips };

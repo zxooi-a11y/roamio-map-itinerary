@@ -1,4 +1,4 @@
-// Road / path routes between a day's stops, from free public routing services.
+// Road / path routes for each leg between two stops of a day, from free public routing services.
 //
 // Results are cached by (mode + coordinates), so editing a stop naturally produces a
 // new key. Requests run one at a time to stay polite to the free servers. Components
@@ -76,17 +76,25 @@ export function subscribeRoutes(fn) {
   return () => listeners.delete(fn);
 }
 
-export const routeKey = (day) =>
-  day.stops.length < 2 ? null : (day.mode || 'foot') + '|' + day.stops.map((s) => s.lng.toFixed(5) + ',' + s.lat.toFixed(5)).join(';');
+/** Cache key for one leg: its mode and both ends. */
+export const legKey = (mode, a, b) =>
+  (mode || 'foot') + '|' + [a, b].map((p) => p.lng.toFixed(5) + ',' + p.lat.toFixed(5)).join(';');
 
 export const getRoute = (key) => (key ? cache.get(key) : undefined);
 
-/** Start fetching a day's route unless it's already cached / in flight. Safe to call on every render. */
-export function requestRoute(day) {
-  const key = routeKey(day);
+/** The legs of a day: [{ stop, from, to, mode, key }] for every stop after the first. */
+export function dayLegs(day) {
+  return day.stops.slice(1).map((stop, i) => {
+    const from = day.stops[i];
+    const mode = stop.travel || day.mode || 'foot';
+    return { stop, from, to: stop, mode, key: legKey(mode, from, stop) };
+  });
+}
+
+/** Start fetching one leg's route unless it's already cached / in flight. Safe to call on every render. */
+export function requestLeg({ key, mode, from, to }) {
   if (!key || cache.has(key)) return;
-  const mode = day.mode || 'foot';
-  const coords = day.stops.map((s) => ({ lat: s.lat, lng: s.lng }));
+  const coords = [from, to].map((p) => ({ lat: p.lat, lng: p.lng }));
   cache.set(key, { status: 'loading' });
   emit();
 
@@ -110,21 +118,26 @@ export function requestRoute(day) {
   });
 }
 
-/** Forget a failed route and try again. */
-export function retryRoute(day) {
-  const key = routeKey(day);
-  if (getRoute(key)?.status !== 'fail') return;
-  cache.delete(key);
-  requestRoute(day);
+/** Forget failed legs of a day and try them again. */
+export function retryLegs(day) {
+  for (const leg of dayLegs(day)) {
+    if (getRoute(leg.key)?.status === 'fail') { cache.delete(leg.key); requestLeg(leg); }
+  }
   emit();
 }
 
-/** "2.4 km · 31 min", "Finding route…", etc. Empty for days with fewer than two stops. */
-export function routeSummary(route) {
-  if (!route) return '';
-  if (route.status === 'loading') return 'Finding route…';
-  if (route.status === 'fail') return 'Route unavailable. Tap to retry';
-  return formatDistance(route.dist) + ' · ' + formatDuration(route.dur) + (route.approx ? ' (by road)' : '');
+/**
+ * "2.4 km · 31 min" for a day's legs (each { status, dist, dur, approx } or undefined), with `seconds[i]` the
+ * guarded travel time of each. Empty for a day with no legs; says so while routes load or when some could not be found.
+ */
+export function routeSummary(legs, seconds) {
+  if (!legs || !legs.length) return '';
+  if (legs.some((r) => !r || r.status === 'loading')) return 'Finding routes…';
+  const ok = legs.filter((r) => r.status === 'ok');
+  const dist = ok.reduce((n, r) => n + r.dist, 0);
+  const secs = seconds.reduce((n, x) => n + x, 0);
+  const missing = legs.length - ok.length;
+  return (ok.length ? formatDistance(dist) + ' · ' : '') + formatDuration(secs) + (missing ? ` (${missing} estimated)` : '');
 }
 
 export const formatDistance = (m) => (m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(1) + ' km');

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../components/Icon.jsx';
 import { useToast } from '../../components/Toast.jsx';
 import { useCompact } from '../../hooks/useCompact.js';
-import { useRoutes } from '../../hooks/useRoute.js';
+import { useDayLegs } from '../../hooks/useRoute.js';
 import { plural } from '../../lib/dates.js';
+import { retimeDay } from '../../lib/timing.js';
 import { describePlan, planDates } from '../../lib/tripDates.js';
 import { summaryLine } from '../../lib/trips.js';
 import { useTrips } from '../../store/TripsProvider.jsx';
@@ -25,7 +26,7 @@ export function TripView({ trip }) {
   const [adding, setAdding] = useState(null); // { day, index } while the Add stop pop-up is open
   const mapApi = useRef(null);
   const stickyRef = useRef(null);
-  const routes = useRoutes(trip.days);
+  const dayData = useDayLegs(trip.days);
 
   // A deleted day can't stay focused.
   const focus = trip.days.some((d) => d.id === focusDayId) ? focusDayId : null;
@@ -47,6 +48,19 @@ export function TripView({ trip }) {
     return () => ro.disconnect();
   }, []);
 
+  // After a reorder, a mode change or an added / removed stop, check the day's times against the travel times
+  // once its routes are in: nothing runs backwards and no leg is planned shorter than it takes.
+  useEffect(() => {
+    trip.days.forEach((day, i) => {
+      if (!day.retime) return;
+      const { legs, seconds } = dayData[i];
+      if (legs.some((l) => !l.route || l.route.status === 'loading')) return;
+      const r = retimeDay(day.stops, seconds);
+      dispatch({ type: 'day/retime', tripId, dayId: day.id, seconds });
+      if (r.changed) toast(`Adjusted the times on day ${i + 1} to fit the travel time.`);
+    });
+  });
+
   const drag = useStopDrag({
     onDrop: (stopId, toDayId, toIndex) => dispatch({ type: 'stop/move', tripId, stopId, toDayId, toIndex }),
     getTopEdge: () => stickyRef.current?.getBoundingClientRect().bottom ?? 0,
@@ -54,6 +68,9 @@ export function TripView({ trip }) {
 
   const actions = useMemo(() => ({
     updateDay: (dayId, patch) => dispatch({ type: 'day/update', tripId, dayId, patch }),
+    setMode: (dayId, mode) => dispatch({ type: 'day/setMode', tripId, dayId, mode }),
+    setTravel: (stopId, mode) => dispatch({ type: 'stop/setTravel', tripId, stopId, mode }),
+    fixTimes: (dayId, seconds) => dispatch({ type: 'day/retime', tripId, dayId, seconds }),
     setCollapsed: (dayId, collapsed) => dispatch({ type: 'day/setCollapsed', tripId, dayId, collapsed }),
     removeDay: (day) => {
       if (day.stops.length && !confirm(`Delete this day and its ${plural(day.stops.length, 'stop')}?`)) return;
@@ -105,7 +122,7 @@ export function TripView({ trip }) {
 
       <div className="stickytop" ref={stickyRef}>
         <section className="map-wrap" aria-label="Trip map">
-          <TripMap trip={trip} routes={routes} focusDayId={focus} fitToken={`${tripId}|${focus}|${fitNonce}`} apiRef={mapApi}
+          <TripMap trip={trip} dayData={dayData} focusDayId={focus} fitToken={`${tripId}|${focus}|${fitNonce}`} apiRef={mapApi}
             onMoveStop={(stopId, lat, lng) => actions.updateStop(stopId, { lat, lng })} />
         </section>
         <DayFilters days={trip.days} focusDayId={focus} onAll={() => actions.focus(null)} onDay={jumpToDay} />
@@ -114,7 +131,7 @@ export function TripView({ trip }) {
       <main className="days">
         {trip.days.map((day, i) => (
           <DayCard key={day.id} day={day} index={i} isLast={i === trip.days.length - 1}
-            route={routes[i]} center={trip.center} drag={drag} actions={actions} />
+            info={dayData[i]} center={trip.center} drag={drag} actions={actions} />
         ))}
         <button className="btn ghost" type="button" onClick={() => dispatch({ type: 'day/add', tripId })}>+ Add a day</button>
       </main>

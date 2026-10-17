@@ -136,7 +136,7 @@ function createDragController(opts) {
   function armPress(e, stopId) {
     if (drag || press) return;
     if (e.button !== undefined && e.button !== 0) return;
-    if (e.target.closest('.grip, .tag, .del, .pin')) return;
+    if (e.target.closest('.grip, .tag, .del, .pin, .leg, .stop-time-in')) return;
     const li = e.currentTarget;
     const p = { li, stopId, pid: e.pointerId, x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, timer: 0 };
     press = p;

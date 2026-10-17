@@ -3,7 +3,8 @@ import { Icon } from '../../components/Icon.jsx';
 import { categoryOf } from '../../lib/categories.js';
 import { fmtLong, plural } from '../../lib/dates.js';
 import { useCompact } from '../../hooks/useCompact.js';
-import { retryRoute, routeSummary } from '../../lib/routing.js';
+import { retryLegs, routeSummary } from '../../lib/routing.js';
+import { legTimings } from '../../lib/timing.js';
 import { dayColor } from '../../lib/theme.js';
 import { TRAVEL_MODES } from '../../lib/trips.js';
 import { DayThumb } from './DayThumb.jsx';
@@ -19,14 +20,14 @@ import { StopRow } from './StopRow.jsx';
  *
  * `actions` holds the day-level callbacks from TripView, already bound to this trip.
  */
-export function DayCard({ day, index, isLast, route, center, drag, actions }) {
+export function DayCard({ day, index, isLast, info, center, drag, actions }) {
   const compact = useCompact();
   const n = index + 1;
   const color = dayColor(index);
   const collapsed = Boolean(day.collapsed);
   const toggle = () => actions.setCollapsed(day.id, !collapsed);
-  const summary = routeSummary(route);
-  const failed = route?.status === 'fail';
+  const summary = routeSummary(info.legs.map((l) => l.route), info.seconds.slice(1));
+  const failed = info.legs.some((l) => l.route?.status === 'fail');
 
   const toggleProps = {
     type: 'button',
@@ -76,12 +77,12 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
             <span>{fmtLong(day.date)}</span>
             <span>{plural(day.stops.length, 'stop')}</span>
             {summary && (failed
-              ? <button className="route-sum retry" type="button" onClick={() => retryRoute(day)}>{summary}</button>
+              ? <button className="route-sum retry" type="button" onClick={() => retryLegs(day)}>{summary}</button>
               : <span className="route-sum">{summary}</span>)}
-            <div className="modes" role="group" aria-label={`Travel mode for day ${n}`}>
+            <div className="modes" role="group" aria-label={`Travel mode for every leg of day ${n}`}>
               {TRAVEL_MODES.map((m) => (
                 <button key={m.key} className="mode-btn" type="button" data-tip={m.label} aria-label={m.label}
-                  aria-pressed={day.mode === m.key} onClick={() => actions.updateDay(day.id, { mode: m.key })}>
+                  aria-pressed={day.mode === m.key && !day.stops.some((s) => s.travel && s.travel !== m.key)} onClick={() => actions.setMode(day.id, m.key)}>
                   <Icon name={m.key} />
                 </button>
               ))}
@@ -90,7 +91,7 @@ export function DayCard({ day, index, isLast, route, center, drag, actions }) {
             <button className="icon-btn del" type="button" aria-label={`Delete day ${n}`} onClick={() => actions.removeDay(day)}>✕</button>
           </div>
 
-          <StopList day={day} drag={drag} actions={actions} />
+          <StopList day={day} info={info} drag={drag} actions={actions} />
 
           <button className="add-btn" type="button" onClick={() => actions.addStop(day, index)}>
             <Icon name="plus" />Add stop
@@ -121,7 +122,8 @@ function StopPreview({ stops, compact }) {
 }
 
 /** The ordered stops, plus the drop placeholder while a stop is being dragged over this day. */
-function StopList({ day, drag, actions }) {
+function StopList({ day, info, drag, actions }) {
+  const timings = legTimings(day.stops, info.seconds);
   const t = drag.target;
   const here = t && t.dayId === day.id;
   const placeholder = <li key="__ph" className="stop-ph" style={{ height: t?.height }} />;
@@ -138,7 +140,11 @@ function StopList({ day, drag, actions }) {
           <Fragment key={s.id}>
             {showPh && placeholder}
             <StopRow stop={s} number={si + 1} drag={drag}
+              leg={si > 0 ? { ...info.legs[si - 1], seconds: info.seconds[si], timing: timings[s.id] } : null}
               onShow={actions.showStop}
+              onTime={(stopId, time) => actions.updateStop(stopId, { time })}
+              onTravel={actions.setTravel}
+              onFix={() => actions.fixTimes(day.id, info.seconds)}
               onRemove={(stopId) => actions.removeStop(day.id, stopId)}
               onCategory={(stopId, cat) => actions.updateStop(stopId, { cat })} />
           </Fragment>
