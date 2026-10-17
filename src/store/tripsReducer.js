@@ -1,6 +1,6 @@
 import { addDays } from '../lib/dates.js';
 import { planDates } from '../lib/tripDates.js';
-import { reassignTimes, retimeDay } from '../lib/timing.js';
+import { autoTimes, reassignTimes } from '../lib/timing.js';
 import { newDay } from '../lib/trips.js';
 
 /*
@@ -68,10 +68,10 @@ export function tripsReducer(trips, action) {
       return updateTrip(trips, tripId, (t) => touch({ ...t, days: t.days.map((d) =>
         (d.stops.some((s) => s.id === stopId) ? needRetime({ ...d, stops: d.stops.map((s) => (s.id === stopId ? { ...s, travel: action.mode } : s)) }) : d)) }));
 
-    case 'day/retime': // { seconds } travel time into each stop: push times later where there isn't enough
+    case 'day/retime': // { seconds } travel time into each stop: every stop's time follows from the one before
       return updateTrip(trips, tripId, (t) => updateDay(t, dayId, (d) => {
         const { retime, ...rest } = d;
-        const r = retimeDay(d.stops, action.seconds || []);
+        const r = autoTimes(d.stops, action.seconds || []);
         return r.changed ? { ...rest, stops: r.stops } : rest;
       }));
 

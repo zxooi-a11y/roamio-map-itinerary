@@ -31,7 +31,7 @@ export function AddStopDialog({ day, dayIndex, map, onClose, onAdd }) {
   const add = () => {
     if (!picked) return;
     onAdd({
-      id: newId(), name: picked.name, time, cat,
+      id: newId(), name: picked.name, time, cat, ...(time ? { pin: true } : {}),
       note: note.trim() || (picked.approx ? APPROX_NOTE : ''),
       lat: picked.lat, lng: picked.lng,
     });

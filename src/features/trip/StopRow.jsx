@@ -2,16 +2,19 @@ import { Icon } from '../../components/Icon.jsx';
 import { useCompact } from '../../hooks/useCompact.js';
 import { CATEGORIES, categoryOf } from '../../lib/categories.js';
 import { formatDistance, formatDuration } from '../../lib/routing.js';
+import { haversine } from '../../lib/timing.js';
 import { TRAVEL_MODES } from '../../lib/trips.js';
 
 /**
- * One stop in a day's list: the leg into it (how you get there, how long, when you arrive; the stop's time is moved later automatically if it's too soon), then grip, time,
- * number pin, name, category, note, remove. The time can be edited right here.
+ * One stop in a day's list: the leg into it (how long it takes), then grip, time,
+ * number pin, name, category, how to get there, note, remove. The time can be edited right here (a typed time is kept
+ * unless there isn't time to get there; clear it to let it follow the travel again).
  * On phones the time is shown inline before the name, so the name can use the whole line.
  */
 export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTime, onTravel, drag }) {
   const compact = useCompact();
   const cat = categoryOf(stop);
+  const modeLabel = leg ? (TRAVEL_MODES.find((m) => m.key === leg.mode)?.label || 'Walking') : '';
   const show = (e) => { e.stopPropagation(); onShow(stop); };
   const timeInput = (
     <input className="stop-time-in" type="time" value={stop.time || ''} aria-label={'Time for ' + stop.name}
@@ -22,7 +25,7 @@ export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTim
     <li className="stop" data-stop={stop.id}
       onPointerDown={(e) => drag.armPress(e, stop.id)}
       onContextMenu={(e) => e.preventDefault()}>
-      {leg && <LegRow leg={leg} stop={stop} onTravel={onTravel} />}
+      {leg && <LegRow leg={leg} stop={stop} />}
       <button className="icon-btn grip" type="button" aria-label={'Drag to reorder ' + stop.name} title="Drag to reorder"
         onPointerDown={(e) => drag.startDrag(e, stop.id)}>⋮⋮</button>
       {!compact && <div className="stop-time">{timeInput}</div>}
@@ -37,6 +40,14 @@ export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTim
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
+          {leg && (
+            <label className="tag travel" data-tip={'Getting here: ' + modeLabel} onClick={(e) => e.stopPropagation()}>
+              <Icon name={leg.mode} />
+              <select aria-label={`How to get to ${stop.name}: ${modeLabel}`} value={leg.mode} onChange={(e) => onTravel(stop.id, e.target.value)}>
+                {TRAVEL_MODES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         {stop.note && <div className="stop-note">{stop.note}</div>}
       </div>
@@ -47,27 +58,18 @@ export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTim
   );
 }
 
-/** The way from the previous stop to this one: pick walking / cycling / driving, see the time, the arrival and any clash. */
-function LegRow({ leg, stop, onTravel }) {
-  const { route, seconds, timing, mode } = leg;
+/** The way from the previous stop to this one: how long it takes and how far (the mode is the circle beside the category). */
+function LegRow({ leg, stop }) {
+  const { route, seconds, mode } = leg;
   const loading = !route || route.status === 'loading';
   // a route whose time had to be raised a lot (the service answered nonsense for this distance) is shown as an estimate
-  const unreliable = !loading && route.status === 'ok' && seconds > route.dur * 1.5;
-  const estimated = !loading && (route.status !== 'ok' || route.approx || unreliable);
+  const unreliable = !loading && route.status === 'ok' && (route.dist < haversine(leg.from, leg.to) * 0.9 || (mode !== 'transit' && seconds > route.dur * 1.5));
+  const estimated = !loading && (route.status !== 'ok' || route.approx || unreliable || mode === 'transit');
   return (
     <div className="leg" data-leg={stop.id}>
-      <div className="leg-modes" role="group" aria-label={'How to get to ' + stop.name}>
-        {TRAVEL_MODES.map((m) => (
-          <button key={m.key} className="mode-btn" type="button" data-tip={m.label} aria-label={m.label}
-            aria-pressed={mode === m.key} onClick={() => onTravel(stop.id, m.key)}>
-            <Icon name={m.key} />
-          </button>
-        ))}
-      </div>
       <span className="leg-info">
         {loading ? 'Finding route…' : <>{formatDuration(seconds)}{route.status === 'ok' && !unreliable && ' · ' + formatDistance(route.dist)}{estimated && ' (est.)'}</>}
       </span>
-      {timing?.arrive && <span className="leg-eta">arrive ≈ {timing.arrive}</span>}
     </div>
   );
 }

@@ -66,8 +66,8 @@ test('a leg mode is kept on its stop, and the day mode replaces them all', () =>
   assert.equal(all[0].days[0].mode, 'bike');
 });
 
-test('day/retime pushes times later by the travel time and clears the to-do marker', () => {
-  const trips = [{ id: 't', updatedAt: 0, days: [{ id: 'a', retime: true, stops: [s('a1', { time: '07:00' }), s('a2', { time: '07:05' })] }] }];
+test('day/retime makes each stop follow the one before and clears the to-do marker', () => {
+  const trips = [{ id: 't', updatedAt: 0, days: [{ id: 'a', retime: true, stops: [s('a1', { time: '07:00' }), s('a2', { time: '21:00' })] }] }];
   const next = tripsReducer(trips, { type: 'day/retime', tripId: 't', dayId: 'a', seconds: [0, 6600] });
   assert.equal(next[0].days[0].stops[1].time, '08:50');
   assert.equal('retime' in next[0].days[0], false);

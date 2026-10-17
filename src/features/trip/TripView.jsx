@@ -4,7 +4,7 @@ import { useToast } from '../../components/Toast.jsx';
 import { useCompact } from '../../hooks/useCompact.js';
 import { useDayLegs } from '../../hooks/useRoute.js';
 import { plural } from '../../lib/dates.js';
-import { retimeDay } from '../../lib/timing.js';
+import { autoTimes } from '../../lib/timing.js';
 import { describePlan, planDates } from '../../lib/tripDates.js';
 import { summaryLine } from '../../lib/trips.js';
 import { useTrips } from '../../store/TripsProvider.jsx';
@@ -48,16 +48,16 @@ export function TripView({ trip }) {
     return () => ro.disconnect();
   }, []);
 
-  // Keep every day's times in order and achievable: after a reorder, a mode change, an edited time or an added / removed
-  // stop, push times later where the travel time needs it. Waits until the day's routes are in (so it uses the real times).
+  // Every stop's time follows from the one before (its time + the travel time): after a reorder, a mode change, an edited
+  // time or an added / removed stop. Waits until the day's routes are in, so it uses the real travel times.
   useEffect(() => {
     trip.days.forEach((day, i) => {
       const { legs, seconds } = dayData[i];
       if (legs.some((l) => !l.route || l.route.status === 'loading')) return;
-      const r = retimeDay(day.stops, seconds);
+      const r = autoTimes(day.stops, seconds);
       if (!day.retime && !r.changed) return;
       dispatch({ type: 'day/retime', tripId, dayId: day.id, seconds });
-      if (r.changed) toast(`Adjusted the times on day ${i + 1} to fit the travel time.`);
+      if (r.changed) toast(`Updated the times on day ${i + 1} to follow the travel time.`);
     });
   });
 
@@ -68,7 +68,6 @@ export function TripView({ trip }) {
 
   const actions = useMemo(() => ({
     updateDay: (dayId, patch) => dispatch({ type: 'day/update', tripId, dayId, patch }),
-    setMode: (dayId, mode) => dispatch({ type: 'day/setMode', tripId, dayId, mode }),
     setTravel: (stopId, mode) => dispatch({ type: 'stop/setTravel', tripId, stopId, mode }),
     setCollapsed: (dayId, collapsed) => dispatch({ type: 'day/setCollapsed', tripId, dayId, collapsed }),
     removeDay: (day) => {

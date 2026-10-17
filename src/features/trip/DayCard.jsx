@@ -4,15 +4,13 @@ import { categoryOf } from '../../lib/categories.js';
 import { fmtLong, plural } from '../../lib/dates.js';
 import { useCompact } from '../../hooks/useCompact.js';
 import { retryLegs, routeSummary } from '../../lib/routing.js';
-import { legTimings } from '../../lib/timing.js';
 import { dayColor } from '../../lib/theme.js';
-import { TRAVEL_MODES } from '../../lib/trips.js';
 import { DayThumb } from './DayThumb.jsx';
 import { StopRow } from './StopRow.jsx';
 
 /**
  * One day of the itinerary: a numbered rail, a summary header (always visible)
- * and a collapsible body with date, travel mode, route info and the stop list.
+ * and a collapsible body with date, route info and the stop list.
  *
  * On phones (`compact`) the layout is streamlined: no left-hand rail with its dotted line (the cards use the
  * full width and the day number sits inside the card), no category icon before the title, no picture on the
@@ -79,14 +77,6 @@ export function DayCard({ day, index, isLast, info, center, drag, actions }) {
             {summary && (failed
               ? <button className="route-sum retry" type="button" onClick={() => retryLegs(day)}>{summary}</button>
               : <span className="route-sum">{summary}</span>)}
-            <div className="modes" role="group" aria-label={`Travel mode for every leg of day ${n}`}>
-              {TRAVEL_MODES.map((m) => (
-                <button key={m.key} className="mode-btn" type="button" data-tip={m.label} aria-label={m.label}
-                  aria-pressed={day.mode === m.key && !day.stops.some((s) => s.travel && s.travel !== m.key)} onClick={() => actions.setMode(day.id, m.key)}>
-                  <Icon name={m.key} />
-                </button>
-              ))}
-            </div>
             <button className="icon-btn" type="button" aria-label={`Show day ${n} on map`} onClick={() => actions.focus(day.id)}>Map</button>
             <button className="icon-btn del" type="button" aria-label={`Delete day ${n}`} onClick={() => actions.removeDay(day)}>✕</button>
           </div>
@@ -123,7 +113,6 @@ function StopPreview({ stops, compact }) {
 
 /** The ordered stops, plus the drop placeholder while a stop is being dragged over this day. */
 function StopList({ day, info, drag, actions }) {
-  const timings = legTimings(day.stops, info.seconds);
   const t = drag.target;
   const here = t && t.dayId === day.id;
   const placeholder = <li key="__ph" className="stop-ph" style={{ height: t?.height }} />;
@@ -140,9 +129,9 @@ function StopList({ day, info, drag, actions }) {
           <Fragment key={s.id}>
             {showPh && placeholder}
             <StopRow stop={s} number={si + 1} drag={drag}
-              leg={si > 0 ? { ...info.legs[si - 1], seconds: info.seconds[si], timing: timings[s.id] } : null}
+              leg={si > 0 ? { ...info.legs[si - 1], seconds: info.seconds[si] } : null}
               onShow={actions.showStop}
-              onTime={(stopId, time) => actions.updateStop(stopId, { time })}
+              onTime={(stopId, time) => actions.updateStop(stopId, time ? { time, pin: true } : { time: '', pin: undefined })}
               onTravel={actions.setTravel}
               onRemove={(stopId) => actions.removeStop(day.id, stopId)}
               onCategory={(stopId, cat) => actions.updateStop(stopId, { cat })} />

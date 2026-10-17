@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { estimateSeconds, legSeconds, legTimings, minSeconds, reassignTimes, retimeDay } from './timing.js';
+import { autoTimes, estimateSeconds, legSeconds, minSeconds, reassignTimes } from './timing.js';
 
 const BRISTOL = { lat: 51.4545, lng: -2.5879 };
 const LONDON = { lat: 51.5074, lng: -0.1278 };
@@ -28,34 +28,37 @@ test('reordering hands the timetable out in order', () => {
   assert.equal(reassignTimes(same), same); // nothing to change keeps the same array
 });
 
-test('a stop is pushed later when there is not enough time to get there', () => {
-  // 07:00 at A, then B at 07:10 but the way takes 1 h 50: B moves to 08:50
-  const r = retimeDay([st('a', '07:00'), st('b', '07:10'), st('c', '09:00')], [0, 6600, 600]);
-  assert.deepEqual(r.stops.map((s) => s.time), ['07:00', '08:50', '09:00']);
+test('each stop\'s time follows from the one before', () => {
+  // 07:38 start, 2 h 10 min to the next: 09:48 -> 09:50 (to the next 5 minutes); 20 min after that: 10:10
+  const r = autoTimes([st('a', '07:38'), st('b', '21:50'), st('c')], [0, 7800, 1200]);
+  assert.deepEqual(r.stops.map((s) => s.time), ['07:38', '09:50', '10:10']);
   assert.equal(r.changed, true);
-  // each push carries on: C needs 10 min after the new 08:50
-  const r2 = retimeDay([st('a', '07:00'), st('b', '07:10'), st('c', '08:55')], [0, 6600, 600]);
-  assert.deepEqual(r2.stops.map((s) => s.time), ['07:00', '08:50', '09:00']);
+  assert.equal(autoTimes(r.stops, [0, 7800, 1200]).changed, false); // already following: nothing more to do
+  const same = [st('a', '07:00'), st('b', '07:30')];
+  assert.equal(autoTimes(same, [0, 1800]).stops, same);
 });
 
-test('enough time, or no times at all, changes nothing; blank stops still use up travel time', () => {
-  const ok = [st('a', '07:00'), st('b', '10:00')];
-  assert.equal(retimeDay(ok, [0, 1800]).stops, ok);
-  const none = [st('a'), st('b')];
-  assert.equal(retimeDay(none, [0, 1800]).changed, false);
-  const blank = retimeDay([st('a', '07:00'), st('b'), st('c', '07:30')], [0, 3600, 1800]);
-  assert.equal(blank.stops[2].time, '08:30'); // 07:00 + 1 h + 30 min
+test('a typed time (pin) is kept if it leaves enough time, and moved later if not; no start time means no change', () => {
+  const kept = autoTimes([st('a', '09:00'), { ...st('b', '20:00'), pin: true }, st('c')], [0, 1800, 600]);
+  assert.deepEqual(kept.stops.map((s) => s.time), ['09:00', '20:00', '20:10']); // dinner stays at 8pm, the next follows it
+  const late = autoTimes([st('a', '07:00'), { ...st('b', '07:10'), pin: true }], [0, 6600]);
+  assert.equal(late.stops[1].time, '08:50');
+  const none = [st('a'), st('b', '12:00')];
+  assert.equal(autoTimes(none, [0, 600]).stops, none);
 });
 
 test('running past midnight is held at 23:59 and reported', () => {
-  const r = retimeDay([st('a', '23:00'), st('b', '23:10')], [0, 7200]);
+  const r = autoTimes([st('a', '23:00'), st('b')], [0, 7200]);
   assert.equal(r.stops[1].time, '23:59');
   assert.equal(r.overflow, true);
 });
 
-test('leg timings give the arrival and flag a stop that is too soon or earlier than the one before', () => {
-  const t = legTimings([st('a', '07:00'), st('b', '07:10'), st('c', '06:00'), st('d')], [0, 3600, 600, 600]);
-  assert.deepEqual([t.b.arrive, t.b.short], ['08:00', 50]);
-  assert.equal(t.c.backwards, true);
-  assert.equal(t.d.arrive !== null, true);
+test('public transport is modelled from the road distance of the journey, never below its floor', () => {
+  // Bristol -> London by public transport: about 2 hours, whatever the car route says
+  const t = legSeconds(BRISTOL, LONDON, 'transit', { status: 'ok', dist: 185000, dur: 300, approx: true });
+  assert.ok(t >= 90 * 60 && t <= 3.5 * 3600, `transit ${t / 60} min`);
+  assert.ok(legSeconds(BRISTOL, LONDON, 'transit', undefined) >= 90 * 60);
+  // short hop: waiting dominates
+  const a = { lat: 51.5, lng: -0.1 }, b = { lat: 51.51, lng: -0.1 };
+  assert.ok(legSeconds(a, b, 'transit', { status: 'ok', dist: 1100 }) >= 600);
 });

@@ -104,7 +104,7 @@ export function requestLeg({ key, mode, from, to }) {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), PROVIDER_TIMEOUT_MS);
       try {
-        const r = await provider(mode, coords, ctl.signal);
+        const r = await provider(mode === 'transit' ? 'car' : mode, coords, ctl.signal); // public transport: the road route stands in for the line and distance
         if (r && r.pts && r.pts.length > 1) { result = r; break; }
       } catch {
         /* try the next service */
