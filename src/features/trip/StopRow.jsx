@@ -5,11 +5,11 @@ import { formatDistance, formatDuration } from '../../lib/routing.js';
 import { TRAVEL_MODES } from '../../lib/trips.js';
 
 /**
- * One stop in a day's list: the leg into it (how you get there, how long, when you arrive), then grip, time,
+ * One stop in a day's list: the leg into it (how you get there, how long, when you arrive; the stop's time is moved later automatically if it's too soon), then grip, time,
  * number pin, name, category, note, remove. The time can be edited right here.
  * On phones the time is shown inline before the name, so the name can use the whole line.
  */
-export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTime, onTravel, onFix, drag }) {
+export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTime, onTravel, drag }) {
   const compact = useCompact();
   const cat = categoryOf(stop);
   const show = (e) => { e.stopPropagation(); onShow(stop); };
@@ -22,7 +22,7 @@ export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTim
     <li className="stop" data-stop={stop.id}
       onPointerDown={(e) => drag.armPress(e, stop.id)}
       onContextMenu={(e) => e.preventDefault()}>
-      {leg && <LegRow leg={leg} stop={stop} onTravel={onTravel} onFix={onFix} />}
+      {leg && <LegRow leg={leg} stop={stop} onTravel={onTravel} />}
       <button className="icon-btn grip" type="button" aria-label={'Drag to reorder ' + stop.name} title="Drag to reorder"
         onPointerDown={(e) => drag.startDrag(e, stop.id)}>⋮⋮</button>
       {!compact && <div className="stop-time">{timeInput}</div>}
@@ -48,15 +48,14 @@ export function StopRow({ stop, number, leg, onShow, onRemove, onCategory, onTim
 }
 
 /** The way from the previous stop to this one: pick walking / cycling / driving, see the time, the arrival and any clash. */
-function LegRow({ leg, stop, onTravel, onFix }) {
+function LegRow({ leg, stop, onTravel }) {
   const { route, seconds, timing, mode } = leg;
   const loading = !route || route.status === 'loading';
   // a route whose time had to be raised a lot (the service answered nonsense for this distance) is shown as an estimate
   const unreliable = !loading && route.status === 'ok' && seconds > route.dur * 1.5;
   const estimated = !loading && (route.status !== 'ok' || route.approx || unreliable);
-  const warn = timing && (timing.short > 0 || timing.backwards);
   return (
-    <div className={'leg' + (warn ? ' is-warn' : '')} data-leg={stop.id}>
+    <div className="leg" data-leg={stop.id}>
       <div className="leg-modes" role="group" aria-label={'How to get to ' + stop.name}>
         {TRAVEL_MODES.map((m) => (
           <button key={m.key} className="mode-btn" type="button" data-tip={m.label} aria-label={m.label}
@@ -68,12 +67,7 @@ function LegRow({ leg, stop, onTravel, onFix }) {
       <span className="leg-info">
         {loading ? 'Finding route…' : <>{formatDuration(seconds)}{route.status === 'ok' && !unreliable && ' · ' + formatDistance(route.dist)}{estimated && ' (est.)'}</>}
       </span>
-      {timing?.arrive && !warn && <span className="leg-eta">arrive ≈ {timing.arrive}</span>}
-      {warn && (
-        <button className="leg-warn" type="button" onClick={onFix}>
-          {timing.backwards ? 'Earlier than the stop before' : `Too soon: arrive ≈ ${timing.arrive}`} · Fix times
-        </button>
-      )}
+      {timing?.arrive && <span className="leg-eta">arrive ≈ {timing.arrive}</span>}
     </div>
   );
 }

@@ -48,14 +48,14 @@ export function TripView({ trip }) {
     return () => ro.disconnect();
   }, []);
 
-  // After a reorder, a mode change or an added / removed stop, check the day's times against the travel times
-  // once its routes are in: nothing runs backwards and no leg is planned shorter than it takes.
+  // Keep every day's times in order and achievable: after a reorder, a mode change, an edited time or an added / removed
+  // stop, push times later where the travel time needs it. Waits until the day's routes are in (so it uses the real times).
   useEffect(() => {
     trip.days.forEach((day, i) => {
-      if (!day.retime) return;
       const { legs, seconds } = dayData[i];
       if (legs.some((l) => !l.route || l.route.status === 'loading')) return;
       const r = retimeDay(day.stops, seconds);
+      if (!day.retime && !r.changed) return;
       dispatch({ type: 'day/retime', tripId, dayId: day.id, seconds });
       if (r.changed) toast(`Adjusted the times on day ${i + 1} to fit the travel time.`);
     });
@@ -70,7 +70,6 @@ export function TripView({ trip }) {
     updateDay: (dayId, patch) => dispatch({ type: 'day/update', tripId, dayId, patch }),
     setMode: (dayId, mode) => dispatch({ type: 'day/setMode', tripId, dayId, mode }),
     setTravel: (stopId, mode) => dispatch({ type: 'stop/setTravel', tripId, stopId, mode }),
-    fixTimes: (dayId, seconds) => dispatch({ type: 'day/retime', tripId, dayId, seconds }),
     setCollapsed: (dayId, collapsed) => dispatch({ type: 'day/setCollapsed', tripId, dayId, collapsed }),
     removeDay: (day) => {
       if (day.stops.length && !confirm(`Delete this day and its ${plural(day.stops.length, 'stop')}?`)) return;

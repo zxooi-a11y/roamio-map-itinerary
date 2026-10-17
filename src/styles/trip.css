@@ -136,7 +136,7 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 .td-field .ad-lbl { margin-bottom: 4px; }
 .td-hint { margin: 8px 0 0; color: var(--muted); font-size: .8rem; max-width: 430px; }
 
-/* The leg into a stop: mode buttons, travel time, arrival, and a warning when the stop's time is too soon */
+/* The leg into a stop: mode buttons, travel time and arrival */
 .leg { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: -2px 0 6px 20px; padding: 4px 8px;
   border-left: 2px solid color-mix(in srgb, var(--c) 40%, var(--line)); color: var(--muted); font-size: .85rem; }
 .leg-modes { display: inline-flex; gap: 3px; }
@@ -144,6 +144,4 @@ body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: non
 .leg .mode-btn .ico { width: 14px; height: 14px; }
 .leg-info, .leg-eta { font-variant-numeric: tabular-nums; }
 .leg-eta { color: var(--c); font-weight: 600; }
-.leg.is-warn { border-left-color: var(--danger); }
-.leg-warn { border: 0; background: color-mix(in srgb, var(--danger) 12%, var(--card)); color: var(--danger); font: inherit; font-weight: 600; padding: 2px 8px; border-radius: 999px; cursor: pointer; text-align: left; }
 .day.compact .leg { margin-left: 14px; }

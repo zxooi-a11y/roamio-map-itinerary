@@ -144,7 +144,6 @@ function StopList({ day, info, drag, actions }) {
               onShow={actions.showStop}
               onTime={(stopId, time) => actions.updateStop(stopId, { time })}
               onTravel={actions.setTravel}
-              onFix={() => actions.fixTimes(day.id, info.seconds)}
               onRemove={(stopId) => actions.removeStop(day.id, stopId)}
               onCategory={(stopId, cat) => actions.updateStop(stopId, { cat })} />
           </Fragment>
