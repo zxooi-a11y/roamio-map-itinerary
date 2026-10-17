@@ -27,6 +27,7 @@ export function ImportPlanner({ trip, stops, start, span, onSubmit, onBack, onCa
   const [path, setPath] = useState(null); // screen points of the lasso being drawn
   const [note, setNote] = useState('');
   const mapEl = useRef(null);
+  const lassoEl = useRef(null);
   const mapRef = useRef(null);
   const layerRef = useRef(null);
   const basemap = useBasemap();
@@ -80,6 +81,16 @@ export function ImportPlanner({ trip, stops, start, span, onSubmit, onBack, onCa
     handlers.forEach((h) => (lasso ? h.disable() : h.enable()));
   }, [lasso]);
 
+  // Phones: the browser must not take the gesture over (scrolling, pull-to-refresh) or the drawing is cut off
+  useEffect(() => {
+    const el = lassoEl.current;
+    if (!el) return undefined;
+    const stop = (e) => e.preventDefault();
+    el.addEventListener('touchstart', stop, { passive: false });
+    el.addEventListener('touchmove', stop, { passive: false });
+    return () => { el.removeEventListener('touchstart', stop); el.removeEventListener('touchmove', stop); };
+  }, [lasso, pending]);
+
   // Markers: grey until they're in a day, then that day's colour and number
   useEffect(() => {
     const layer = layerRef.current;
@@ -101,17 +112,20 @@ export function ImportPlanner({ trip, stops, start, span, onSubmit, onBack, onCa
     const r = mapEl.current.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
+  const pathRef = useRef(null);
+  const draw = (pts) => { pathRef.current = pts; setPath(pts); };
   const down = (e) => {
     if (pending) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    setPath([local(e)]);
+    e.preventDefault();
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    draw([local(e)]);
     setNote('');
   };
-  const move = (e) => { if (path) setPath((p) => [...p, local(e)]); };
+  const move = (e) => { if (pathRef.current) draw([...pathRef.current, local(e)]); };
   const up = () => {
-    if (!path) return;
-    const poly = path;
-    setPath(null);
+    const poly = pathRef.current;
+    if (!poly) return;
+    draw(null);
     if (poly.length < 3) return;
     const map = mapRef.current;
     const ids = stops.filter((s) => insidePolygon(map.latLngToContainerPoint([s.lat, s.lng]), poly)).map((s) => s.id);
@@ -168,9 +182,9 @@ export function ImportPlanner({ trip, stops, start, span, onSubmit, onBack, onCa
       <div className="ip-map-wrap">
         <div className="ip-map" ref={mapEl} />
         {lasso && !pending && (
-          <svg className="ip-lasso" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setPath(null)}>
-            {path && <polyline points={path.map((p) => p.x + ',' + p.y).join(' ')} />}
-          </svg>
+          <div className="ip-lasso" ref={lassoEl} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+            <svg>{path && <polyline points={path.map((p) => p.x + ',' + p.y).join(' ')} />}</svg>
+          </div>
         )}
         <div className="ip-tools">
           <button className="ip-tool" type="button" aria-pressed={lasso} onClick={() => setLasso(true)}><Icon name="edit" />Draw</button>
